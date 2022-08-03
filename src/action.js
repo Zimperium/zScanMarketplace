@@ -1,9 +1,10 @@
 const core = require('@actions/core');
+const fs = require('fs');
 
-const clientEnv = core.getInput('client_env', { required: true });
-const clientId = core.getInput('client_id', { required: true });
-const clientSecret = core.getInput('client_secret', { required: true });
-const appFile = core.getInput('app_file', { required: true });
+const clientEnv = core.getInput('client_env', { required: false });
+const clientId = core.getInput('client_id', { required: false });
+const clientSecret = core.getInput('client_secret', { required: false });
+const appFile = core.getInput('app_file', { required: false });
 
 core.debug(`env ${clientEnv}`);
 core.debug(`id ${clientId}`);
@@ -22,3 +23,5 @@ const sampleJson =
     '"snippet":{"text":"Text"}}}}]}]}]}'
 
 core.setOutput( "sarifJson", sampleJson);
+
+fs.writeFile("Zimperium.sarif", sampleJson, (err) => {});
