@@ -2141,14 +2141,17 @@ var __webpack_exports__ = {};
 // This entry need to be wrapped in an IIFE because it need to be isolated against other modules in the chunk.
 (() => {
 const core = __nccwpck_require__(127);
+const fs = __nccwpck_require__(147);
 
-const clientEnv = core.getInput('clientEnv', { required: true });
-const clientId = core.getInput('clientId', { required: true });
-const clientSecret = core.getInput('clientSecret', { required: true });
+const clientEnv = core.getInput('client_env', { required: false });
+const clientId = core.getInput('client_id', { required: false });
+const clientSecret = core.getInput('client_secret', { required: false });
+const appFile = core.getInput('app_file', { required: false });
 
 core.debug(`env ${clientEnv}`);
 core.debug(`id ${clientId}`);
 core.debug(`secret: ${clientSecret.substring(0,3)}`);
+core.debug(`app: ${appFile}`);
 
 const sampleJson =
     '{"$schema":"https://raw.githubusercontent.com/oasis-tcs/sarif-spec/master/Schemata/sarif-schema-2.1.0.json",' +
@@ -2162,6 +2165,9 @@ const sampleJson =
     '"snippet":{"text":"Text"}}}}]}]}]}'
 
 core.setOutput( "sarifJson", sampleJson);
+
+fs.writeFile("Zimperium.sarif", sampleJson, (err) => {});
+
 })();
 
 module.exports = __webpack_exports__;
