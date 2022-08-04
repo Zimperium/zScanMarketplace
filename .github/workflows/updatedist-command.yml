@@ -1,0 +1,25 @@
+name: Command Update Dist
+on:
+  workflow_dispatch:
+
+jobs:
+  lockfiles:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Dump GitHub context
+        env:
+          GITHUB_CONTEXT: ${{ toJson(github) }}
+        run: echo "$GITHUB_CONTEXT"
+
+      - uses: actions/checkout@v3
+        with:
+          fetch-depth: 0 # full history
+          token: ${{ secrets.PAT_REPO_FULL }}
+
+      - run: |
+          npm install
+      - run: |
+          npm run all
+      - uses: stefanzweifel/git-auto-commit-action@v4
+        with:
+          commit_message: Update lockfiles
