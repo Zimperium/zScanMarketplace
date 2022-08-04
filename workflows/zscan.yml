@@ -1,13 +1,30 @@
-name: 'Hello World'
-description: 'Greet someone and record the time'
+name: 'Zimperium zScan Action'
+description: 'Zimperium zScan Action'
 inputs:
-  who-to-greet:  # id of input
-    description: 'Who to greet'
+  client_env: # REPLACE: Zimperium Environment Name
     required: true
-    default: 'World'
-outputs:
-  time: # id of output
-    description: 'The time we greeted you'
+    description: "Etc"
+    #default: "$CLIENT_ENV"
+
+  client_id: # REPLACE: Zimperium Client ID
+    required: true
+    description: "Etc"
+    #default: "$CLIENT_ID"
+  
+  client_secret:
+    required: true
+    description: "Etc"
+    #default: " ${{ secrets.ZSCAN_CLIENT_SECRET }}"
+
+  app_file:
+    required: true
+    description: "Etc"
+    #default: "${{ steps.apk-path.outputs.path }}"
+
+#outputs:
+#  time: # id of output
+#    description: 'The time we greeted you'
+
 runs:
   using: 'node16'
-  main: 'index.js'
+  main: 'dist/index.js'
