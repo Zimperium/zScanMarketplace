@@ -2154,18 +2154,76 @@ core.debug(`secret: ${clientSecret.substring(0,3)}`);
 core.debug(`app: ${appFile}`);
 
 const sampleJson =
-    '{"$schema":"https://raw.githubusercontent.com/oasis-tcs/sarif-spec/master/Schemata/sarif-schema-2.1.0.json",' +
-    '"version":"2.1.0",' +
-    '"runs":[{"versionControlProvenance":[{"repositoryUri":"https://github.com/Zimperium/zScanExampleApp",' +
-    '"branch":"Testing123"}],"tool":{"driver":{"name":"Zimperium zScan Analysis","semanticVersion":"0.0",' +
-    '"informationUri":"https://ziap.zimperium.com","rules":[{"id":"5d8dde2c-d68f-b895-195f-561200000000",' +
-    '"name":"Sample Rule 1","shortDescription":{"text":"Sample Short Description"},' +
-    '"fullDescription":{"text":"Sample Full Description"},"properties":{"tags":["Sample Tag 1"],' +
-    '"severity":"Low","type":"privacy","category":"Personal Data","subcategory":"Logging"}}],' +
-    '"properties":{"appVersion":"2.0"}}},"results":[{"ruleId":"R1","ruleIndex":0,' +
-    '"message":{"text":"Sample Result Text"},' +
-    '"locations":[{"physicalLocation":{"artifactLocation":{"uri":"Location2"},"region":{"startLine":163,' +
-    '"snippet":{"text":"Text"}}}}]}]}]}'
+    '{\n' +
+    '  "$schema": "https://raw.githubusercontent.com/oasis-tcs/sarif-spec/master/Schemata/sarif-schema-2.1.0.json",\n' +
+    '  "version": "2.1.0",\n' +
+    '  "runs": [\n' +
+    '    {\n' +
+    '      "versionControlProvenance": [\n' +
+    '        {\n' +
+    '          "repositoryUri": "https://github.com/Zimperium/zScanExampleApp",\n' +
+    '          "revisionId": "09791fc993137d0d731f983c00efdcf3a3ec847b",\n' +
+    '          "branch": "Testing123"\n' +
+    '        }\n' +
+    '      ],\n' +
+    '      "tool": {\n' +
+    '        "driver": {\n' +
+    '          "name": "Zimperium zScan Analysis",\n' +
+    '          "semanticVersion": "0.0",\n' +
+    '          "informationUri": "https://ziap.zimperium.com",\n' +
+    '          "rules": [\n' +
+    '            {\n' +
+    '              "id": "5d8dde2c-d68f-b895-195f-561200000000",\n' +
+    '              "name": "Sample Rule 1",\n' +
+    '              "shortDescription": {\n' +
+    '                "text": "Sample Short Description"\n' +
+    '              },\n' +
+    '              "fullDescription": {\n' +
+    '                "text": "Sample Full Description"\n' +
+    '              },\n' +
+    '              "properties": {\n' +
+    '                "tags": [\n' +
+    '                  "Sample Tag 1"\n' +
+    '                ],\n' +
+    '                "severity": "Low",\n' +
+    '                "type": "privacy",\n' +
+    '                "category": "Personal Data",\n' +
+    '                "subcategory": "Logging"\n' +
+    '              }\n' +
+    '            }\n' +
+    '          ],\n' +
+    '          "properties": {\n' +
+    '            "appVersion": "2.0"\n' +
+    '          }\n' +
+    '        }\n' +
+    '      },\n' +
+    '      "results": [\n' +
+    '        {\n' +
+    '          "ruleId": "R1",\n' +
+    '          "ruleIndex": 0,\n' +
+    '          "message": {\n' +
+    '            "text": "Sample Result Text"\n' +
+    '          },\n' +
+    '          "locations": [\n' +
+    '            {\n' +
+    '              "physicalLocation": {\n' +
+    '                "artifactLocation": {\n' +
+    '                  "uri": "Location2"\n' +
+    '                },\n' +
+    '                "region": {\n' +
+    '                  "startLine": 163,\n' +
+    '                  "snippet": {\n' +
+    '                    "text": "Text"\n' +
+    '                  }\n' +
+    '                }\n' +
+    '              }\n' +
+    '            }\n' +
+    '          ]\n' +
+    '        }\n' +
+    '      ]\n' +
+    '    }\n' +
+    '  ]\n' +
+    '}'
 
 core.setOutput( "sarifJson", sampleJson);
 
