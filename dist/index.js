@@ -2162,7 +2162,7 @@ const sampleJson =
     '      "versionControlProvenance": [\n' +
     '        {\n' +
     '          "repositoryUri": "https://github.com/Zimperium/zScanExampleApp",\n' +
-    '          "revisionId": "09791fc993137d0d731f983c00efdcf3a3ec847b",\n' +
+    '          "revisionId": "28915d7ad5b0a045b5e7647bfdf1b7a7df7328ea",\n' +
     '          "branch": "Testing123"\n' +
     '        }\n' +
     '      ],\n' +
