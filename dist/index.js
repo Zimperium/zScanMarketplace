@@ -2208,10 +2208,10 @@ const sampleJson =
     '            {\n' +
     '              "physicalLocation": {\n' +
     '                "artifactLocation": {\n' +
-    '                  "uri": "Location2"\n' +
+    '                  "uri": "Location' + Math.floor(Math.random() * 1000) + '"\n' +
     '                },\n' +
     '                "region": {\n' +
-    '                  "startLine": 163,\n' +
+    '                  "startLine": ' + Math.floor(Math.random() * 1000) + ',\n' +
     '                  "snippet": {\n' +
     '                    "text": "Text"\n' +
     '                  }\n' +
