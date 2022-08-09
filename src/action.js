@@ -1,3 +1,4 @@
+const unirest = require('unirest');
 const core = require('@actions/core');
 const fs = require('fs');
 
