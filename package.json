@@ -19,6 +19,7 @@
   },
   "homepage": "https://github.com/Zimperium/zScanMarketplace#readme",
   "dependencies": {
-    "@actions/core": "^1.9.0"
+    "@actions/core": "^1.9.0",
+    "unirest": "^0.6.0"
   }
 }

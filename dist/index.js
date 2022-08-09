@@ -716,6 +716,7 @@ class Summary {
             const writeFunc = overwrite ? writeFile : appendFile;
             yield writeFunc(filePath, this._buffer, { encoding: 'utf8' });
             return this.emptyBuffer();
+            return this.emptyBuffer();
         });
     }
     /**
@@ -2146,88 +2147,122 @@ const fs = __nccwpck_require__(147);
 const clientEnv = core.getInput('client_env', { required: false });
 const clientId = core.getInput('client_id', { required: false });
 const clientSecret = core.getInput('client_secret', { required: false });
-const appFile = core.getInput('app_file', { required: false });
+const clientApp = core.getInput('app_file', { required: false });
+
+const MAX_POLL_TIME = 30/*minutes*/ * 60/*seconds*/ * 1000/*ms*/;
+
+// const clientApp = '/Users/mattthibeeau/Development/zScanMarketplace/src/test.apk';
+
+let loginResponse = undefined;
+
+function loginHttpRequest(clientEnv) {
+    return new Promise(function (resolve, reject) {
+        let expired = true;
+        if(loginResponse != undefined) {
+            let claims = JSON.parse(new Buffer(loginResponse.accessToken.split('.')[1], 'base64'));
+            if (Date.now() < claims.exp * 1000) {
+                expired = false;
+                resolve(loginResponse);
+            }
+        }
+
+        if (expired) {
+            core.debug("Requesting Auth Token");
+            const url = `https://${clientEnv}.zimperium.com/api/auth/v1/api_keys/login`
+            unirest('POST', url)
+                .headers({
+                    'Content-Type': 'application/json'
+                })
+                .send(JSON.stringify({"clientId": clientId, "secret": clientSecret}))
+                .end(function (res) {
+                    if (res.error) reject(res.error);
+                    loginResponse = JSON.parse(res.raw_body);
+                    resolve(loginResponse);
+                });
+        }
+    });
+}
+
+async function uploadApp() {
+    const loginResponse = await loginHttpRequest()
+    return new Promise(function (resolve, reject) {
+        const url = `https://${clientEnv}.zimperium.com/api/zdev-upload/pub/v1/uploads/build`
+        unirest('POST', url )
+            .headers({'Content-Type': 'multipart/form-data', 'Authorization': 'Bearer ' + loginResponse.accessToken})
+            .attach('buildFile', clientApp)
+            .field('notifyUploader', 'false')
+            .end(function (res) {
+                if (res.error)
+                    reject(res.error);
+                resolve(JSON.parse(res.raw_body));
+            });
+    });
+}
+
+async function statusHttpRequest(buildId) {
+    const loginResponse = await loginHttpRequest()
+    return new Promise(function (resolve, reject) {
+        const url = `https://${clientEnv}.zimperium.com/api/zdev-app/pub/v1/assessments/status?buildId=${buildId}`
+        unirest('GET', url)
+            .headers({'Authorization': 'Bearer ' + loginResponse.accessToken})
+            .end(function (res) {
+                if (res.error) //The service is returning 500's even though it is still working
+                    resolve({zdevMetadata: {analysis: res.error.status}})
+                resolve(JSON.parse(res.raw_body));
+            });
+    });
+}
+
+async function pollStatus(buildId) {
+    await sleep(15000);
+    let done = false;
+    let totalTime = 0;
+    while(!done && totalTime < MAX_POLL_TIME) {
+        let status = await statusHttpRequest(buildId);
+        core.debug(status);
+        if(status.zdevMetadata.analysis === 'Done' || status.zdevMetadata.analysis === 'Failed' ) {
+            core.debug(`Finished state: ${status.zdevMetadata.analysis}`);
+            done = true;
+            return status;
+        } else {
+            core.debug(`Sleeping: ${status.zdevMetadata.analysis}`);
+            totalTime += 10000;
+            await sleep(10000);
+        }
+    }
+}
+
+async function downloadApp(appId) {
+    sleep(5000); //Uggh, if you request the assessment too fast you get a 500.
+    const loginResponse = await loginHttpRequest()
+    return new Promise(function (resolve, reject) {
+        let url = `https://${clientEnv}.zimperium.com/api/zdev-app/pub/v1/assessments/${appId}/sarif`
+        unirest('GET', url)
+            .headers({'Authorization': 'Bearer ' + loginResponse.accessToken})
+            .end(function (res) {
+                if (res.error) throw new Error(res.error);
+                fs.writeFileSync('Zimperium.sarif', Buffer.from(res.raw_body));
+            });
+    });
+}
+
+function sleep(ms) {
+    return new Promise(resolve => setTimeout(resolve, ms));
+}
 
 core.debug(`env ${clientEnv}`);
 core.debug(`id ${clientId}`);
 core.debug(`secret: ${clientSecret.substring(0,3)}`);
 core.debug(`app: ${appFile}`);
 
-const sampleJson =
-    '{\n' +
-    '  "$schema": "https://raw.githubusercontent.com/oasis-tcs/sarif-spec/master/Schemata/sarif-schema-2.1.0.json",\n' +
-    '  "version": "2.1.0",\n' +
-    '  "runs": [\n' +
-    '    {\n' +
-    '      "versionControlProvenance": [\n' +
-    '        {\n' +
-    '          "repositoryUri": "https://github.com/Zimperium/zScanExampleApp",\n' +
-    '          "revisionId": "28915d7ad5b0a045b5e7647bfdf1b7a7df7328ea",\n' +
-    '          "branch": "Testing123"\n' +
-    '        }\n' +
-    '      ],\n' +
-    '      "tool": {\n' +
-    '        "driver": {\n' +
-    '          "name": "Zimperium zScan Analysis",\n' +
-    '          "semanticVersion": "0.0",\n' +
-    '          "informationUri": "https://ziap.zimperium.com",\n' +
-    '          "rules": [\n' +
-    '            {\n' +
-    '              "id": "5d8dde2c-d68f-b895-195f-561200000000",\n' +
-    '              "name": "Sample Rule 1",\n' +
-    '              "shortDescription": {\n' +
-    '                "text": "Sample Short Description"\n' +
-    '              },\n' +
-    '              "fullDescription": {\n' +
-    '                "text": "Sample Full Description"\n' +
-    '              },\n' +
-    '              "properties": {\n' +
-    '                "tags": [\n' +
-    '                  "Sample Tag 1"\n' +
-    '                ],\n' +
-    '                "severity": "Low",\n' +
-    '                "type": "privacy",\n' +
-    '                "category": "Personal Data",\n' +
-    '                "subcategory": "Logging"\n' +
-    '              }\n' +
-    '            }\n' +
-    '          ],\n' +
-    '          "properties": {\n' +
-    '            "appVersion": "2.0"\n' +
-    '          }\n' +
-    '        }\n' +
-    '      },\n' +
-    '      "results": [\n' +
-    '        {\n' +
-    '          "ruleId": "R1",\n' +
-    '          "ruleIndex": 0,\n' +
-    '          "message": {\n' +
-    '            "text": "Sample Result Text"\n' +
-    '          },\n' +
-    '          "locations": [\n' +
-    '            {\n' +
-    '              "physicalLocation": {\n' +
-    '                "artifactLocation": {\n' +
-    '                  "uri": "Location' + Math.floor(Math.random() * 1000) + '"\n' +
-    '                },\n' +
-    '                "region": {\n' +
-    '                  "startLine": ' + Math.floor(Math.random() * 1000) + ',\n' +
-    '                  "snippet": {\n' +
-    '                    "text": "Text"\n' +
-    '                  }\n' +
-    '                }\n' +
-    '              }\n' +
-    '            }\n' +
-    '          ]\n' +
-    '        }\n' +
-    '      ]\n' +
-    '    }\n' +
-    '  ]\n' +
-    '}'
+uploadApp().then(uploadResult => {
+    pollStatus(uploadResult.buildId).then(statusResult => {
+        downloadApp(statusResult.id).then(downloadResult => {
+            core.debug('Finished!');
+        });
+    });
+});
 
-core.setOutput( "sarifJson", sampleJson);
-
-fs.writeFile("Zimperium.sarif", sampleJson, (err) => {});
 
 })();
 
