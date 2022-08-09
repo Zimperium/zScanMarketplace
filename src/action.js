@@ -27,6 +27,7 @@ function loginHttpRequest(clientEnv) {
         if (expired) {
             core.debug("Requesting Auth Token");
             const url = `https://${clientEnv}.zimperium.com/api/auth/v1/api_keys/login`
+            core.debug(url);
             unirest('POST', url)
                 .headers({
                     'Content-Type': 'application/json'
