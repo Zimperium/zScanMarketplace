@@ -38195,6 +38195,7 @@ function loginHttpRequest() {
                 .end(function (res) {
                     if (res.error) reject(res.error);
                     loginResponse = JSON.parse(res.raw_body);
+                    core.debug("Setting login response");
                     resolve(loginResponse);
                 });
         }
@@ -38202,7 +38203,9 @@ function loginHttpRequest() {
 }
 
 async function uploadApp() {
+    core.debug("Uploading App");
     const loginResponse = await loginHttpRequest()
+    core.debug(loginResponse.accessToken);
     return new Promise(function (resolve, reject) {
         const url = `https://${clientEnv}.zimperium.com/api/zdev-upload/pub/v1/uploads/build`
         unirest('POST', url )
