@@ -716,7 +716,6 @@ class Summary {
             const writeFunc = overwrite ? writeFile : appendFile;
             yield writeFunc(filePath, this._buffer, { encoding: 'utf8' });
             return this.emptyBuffer();
-            return this.emptyBuffer();
         });
     }
     /**
@@ -2253,7 +2252,7 @@ function sleep(ms) {
 core.debug(`env ${clientEnv}`);
 core.debug(`id ${clientId}`);
 core.debug(`secret: ${clientSecret.substring(0,3)}`);
-core.debug(`app: ${appFile}`);
+core.debug(`app: ${clientApp}`);
 
 uploadApp().then(uploadResult => {
     pollStatus(uploadResult.buildId).then(statusResult => {
