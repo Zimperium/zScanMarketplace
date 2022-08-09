@@ -26,13 +26,15 @@ function loginHttpRequest() {
 
         if (expired) {
             core.debug("Requesting Auth Token");
-            const url = `https://${clientEnv}.zimperium.com/api/auth/v1/api_keys/login`
+            const url = `https://${clientEnv}.zimperium.com/api/auth/v1/api_keys/login`;
             core.debug(url);
+            const clientInfo = JSON.stringify({"clientId": clientId, "secret": clientSecret});
+            core.debug(clientInfo);
             unirest('POST', url)
                 .headers({
                     'Content-Type': 'application/json'
                 })
-                .send(JSON.stringify({"clientId": clientId, "secret": clientSecret}))
+                .send(clientInfo)
                 .end(function (res) {
                     if (res.error) reject(res.error);
                     loginResponse = JSON.parse(res.raw_body);
