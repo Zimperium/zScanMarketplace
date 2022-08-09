@@ -13,7 +13,7 @@ const MAX_POLL_TIME = 30/*minutes*/ * 60/*seconds*/ * 1000/*ms*/;
 
 let loginResponse = undefined;
 
-function loginHttpRequest(clientEnv) {
+function loginHttpRequest() {
     return new Promise(function (resolve, reject) {
         let expired = true;
         if(loginResponse != undefined) {
