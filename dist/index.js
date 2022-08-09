@@ -38209,7 +38209,7 @@ async function uploadApp() {
     return new Promise(function (resolve, reject) {
         const url = `https://${clientEnv}.zimperium.com/api/zdev-upload/pub/v1/uploads/build`
         unirest('POST', url )
-            .headers({'Content-Type': 'multipart/form-data', 'Authorization': 'Bearer ' + loginResponse.accessToken})
+            .headers({'Content-Type': 'multipart/form-data', 'Authorization': 'Bearer Test'})// + loginResponse.accessToken})
             .attach('buildFile', clientApp)
             .field('notifyUploader', 'false')
             .end(function (res) {
