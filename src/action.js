@@ -57,7 +57,7 @@ async function uploadApp() {
         const url = `https://${clientEnv}.zimperium.com/api/zdev-upload/pub/v1/uploads/build`
         unirest('POST', url )
             .headers({'Content-Type': 'multipart/form-data', 'Authorization': 'Bearer ' + loginResponse.accessToken})
-            .attach('buildFile', clientApp)
+            .attach('buildFile', 'app/build/outputs/apk/release/app-release-unsigned.apk')//clientApp)
             .field('notifyUploader', 'false')
             .end(function (res) {
                 if (res.error)
