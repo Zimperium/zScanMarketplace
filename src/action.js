@@ -47,12 +47,16 @@ function loginHttpRequest() {
 
 async function uploadApp() {
     core.debug("Uploading App");
+
+    const stats = fs.statSync(clientApp);
+    core.debug(`${clientApp} size: ${stats.size}`);
+
     const loginResponse = await loginHttpRequest()
     core.debug(loginResponse.accessToken);
     return new Promise(function (resolve, reject) {
         const url = `https://${clientEnv}.zimperium.com/api/zdev-upload/pub/v1/uploads/build`
         unirest('POST', url )
-            .headers({'Content-Type': 'multipart/form-data', 'Authorization': 'Bearer Test'})// + loginResponse.accessToken})
+            .headers({'Content-Type': 'multipart/form-data', 'Authorization': 'Bearer ' + loginResponse.accessToken})
             .attach('buildFile', clientApp)
             .field('notifyUploader', 'false')
             .end(function (res) {
