@@ -48,7 +48,7 @@ function loginHttpRequest() {
 async function uploadApp() {
     core.debug("Uploading App");
 
-    const stats = fs.statSync(clientApp);
+    const stats = fs.statSync('app/build/outputs/apk/release/app-release-unsigned.apk');
     core.debug(`${clientApp} size: ${stats.size}`);
 
     const loginResponse = await loginHttpRequest()
