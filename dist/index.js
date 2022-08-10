@@ -38204,20 +38204,13 @@ function loginHttpRequest() {
 
 async function uploadApp() {
     core.debug("Uploading App");
-
-    // const stats = fs.statSync('app/build/outputs/apk/release/app-release-unsigned.apk');
-    // core.debug(`${clientApp} size: ${stats.size}`);
-
-    const stats2 = fs.statSync('/home/runner/work/zScanExampleApp/zScanExampleApp/app-release-unsigned.apk');
-    core.debug(`${clientApp} size: ${stats2.size}`);
-
     const loginResponse = await loginHttpRequest()
     core.debug(loginResponse.accessToken);
     return new Promise(function (resolve, reject) {
         const url = `https://${clientEnv}.zimperium.com/api/zdev-upload/pub/v1/uploads/build`
         unirest('POST', url )
             .headers({'Content-Type': 'multipart/form-data', 'Authorization': 'Bearer ' + loginResponse.accessToken})
-            .attach('buildFile', '/home/runner/work/zScanExampleApp/zScanExampleApp/app-release-unsigned.apk')//clientApp)
+            .attach('buildFile', clientApp)
             .field('notifyUploader', 'false')
             .end(function (res) {
                 if (res.error)
