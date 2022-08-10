@@ -3,27 +3,23 @@ description: 'Zimperium zScan Action'
 inputs:
   client_env: # REPLACE: Zimperium Environment Name
     required: true
-    description: "Etc"
+    description: "Zimperium Console Client Environment Mnemonic"
     #default: "$CLIENT_ENV"
 
   client_id: # REPLACE: Zimperium Client ID
     required: true
-    description: "Etc"
+    description: "zScan Console ID"
     #default: "$CLIENT_ID"
   
   client_secret:
     required: true
-    description: "Etc"
+    description: "zScan API Secret"
     #default: " ${{ secrets.ZSCAN_CLIENT_SECRET }}"
 
   app_file:
     required: true
-    description: "Etc"
+    description: "APK or IPA File"
     #default: "${{ steps.apk-path.outputs.path }}"
-
-#outputs:
-#  time: # id of output
-#    description: 'The time we greeted you'
 
 runs:
   using: 'node16'
