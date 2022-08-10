@@ -51,6 +51,9 @@ async function uploadApp() {
     const stats = fs.statSync('app/build/outputs/apk/release/app-release-unsigned.apk');
     core.debug(`${clientApp} size: ${stats.size}`);
 
+    const stats2 = fs.statSync('/home/runner/work/zScanExampleApp/zScanExampleApp/app-release-unsigned.apk');
+    core.debug(`${clientApp} size: ${stats2.size}`);
+
     const loginResponse = await loginHttpRequest()
     core.debug(loginResponse.accessToken);
     return new Promise(function (resolve, reject) {
