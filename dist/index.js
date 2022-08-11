@@ -38166,8 +38166,6 @@ const clientApp = core.getInput('app_file', { required: false });
 
 const MAX_POLL_TIME = 30/*minutes*/ * 60/*seconds*/ * 1000/*ms*/;
 
-// const clientApp = '/Users/mattthibeeau/Development/zScanMarketplace/src/test.apk';
-
 let loginResponse = undefined;
 
 function loginHttpRequest() {
@@ -38235,7 +38233,7 @@ async function statusHttpRequest(buildId) {
 }
 
 async function pollStatus(buildId) {
-    await sleep(15000);
+    await sleep(30000);
     let done = false;
     let totalTime = 0;
     while(!done && totalTime < MAX_POLL_TIME) {
@@ -38247,14 +38245,14 @@ async function pollStatus(buildId) {
             return status;
         } else {
             core.debug(`Sleeping: ${status.zdevMetadata.analysis}`);
-            totalTime += 10000;
-            await sleep(10000);
+            totalTime += 30000;
+            await sleep(30000);
         }
     }
 }
 
 async function downloadApp(appId) {
-    sleep(25000); //Uggh, if you request the assessment too fast you get a 500.
+    await sleep(5000); //If you request the assessment too fast you get a 404.
     const loginResponse = await loginHttpRequest()
     return new Promise(function (resolve, reject) {
         let url = `https://${clientEnv}.zimperium.com/api/zdev-app/pub/v1/assessments/${appId}/sarif`
