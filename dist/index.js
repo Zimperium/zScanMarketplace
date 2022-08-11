@@ -38164,7 +38164,7 @@ const clientId = core.getInput('client_id', { required: false });
 const clientSecret = core.getInput('client_secret', { required: false });
 const clientApp = core.getInput('app_file', { required: false });
 
-const MAX_POLL_TIME = 30/*minutes*/ * 60/*seconds*/ * 1000/*ms*/;
+const MAX_POLL_TIME = 45/*minutes*/ * 60/*seconds*/ * 1000/*ms*/;
 
 let loginResponse = undefined;
 
@@ -38252,7 +38252,9 @@ async function pollStatus(buildId) {
 }
 
 async function downloadApp(appId) {
+    core.debug("downloadApp before Sleep 5sec");
     await sleep(5000); //If you request the assessment too fast you get a 404.
+    core.debug("downloadApp after Sleep 5sec");
     const loginResponse = await loginHttpRequest()
     return new Promise(function (resolve, reject) {
         let url = `https://${clientEnv}.zimperium.com/api/zdev-app/pub/v1/assessments/${appId}/sarif`
