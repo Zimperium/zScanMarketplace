@@ -38254,7 +38254,7 @@ async function pollStatus(buildId) {
 }
 
 async function downloadApp(appId) {
-    sleep(5000); //Uggh, if you request the assessment too fast you get a 500.
+    sleep(25000); //Uggh, if you request the assessment too fast you get a 500.
     const loginResponse = await loginHttpRequest()
     return new Promise(function (resolve, reject) {
         let url = `https://${clientEnv}.zimperium.com/api/zdev-app/pub/v1/assessments/${appId}/sarif`
