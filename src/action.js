@@ -143,6 +143,13 @@ uploadApp().then(uploadResult => {
     pollStatus(uploadResult.buildId).then(statusResult => {
         pollDownload(statusResult.id).then(downloadResult => {
             core.debug('Finished!');
+            fs.stat('Zimperium.sarif.json', (err, stats) => {
+                if (err) {
+                    core.debug(`File doesn't exist.`);
+                } else {
+                    core.debug(stats);
+                }
+            });
         });
     });
 });
