@@ -38261,7 +38261,7 @@ async function downloadApp(appId) {
                 } else if (res.error) {
                     resolve(res.statusCode);
                 } else {
-                    fs.writeFileSync('Zimperium.sarif.json', Buffer.from(res.raw_body));
+                    fs.writeFileSync('Zimperium.sarif', Buffer.from(res.raw_body));
                     resolve(res.statusCode); //should be 200?
                 }
             });
@@ -38300,7 +38300,7 @@ uploadApp().then(uploadResult => {
     pollStatus(uploadResult.buildId).then(statusResult => {
         pollDownload(statusResult.id).then(downloadResult => {
             core.debug('Finished!');
-            fs.stat('Zimperium.sarif.json', (err, stats) => {
+            fs.stat('Zimperium.sarif', (err, stats) => {
                 if (err) {
                     core.debug(`File doesn't exist.`);
                 } else {
