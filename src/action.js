@@ -8,6 +8,7 @@ const clientSecret = core.getInput('client_secret', { required: false });
 const clientApp = core.getInput('app_file', { required: false });
 
 const MAX_POLL_TIME = 45/*minutes*/ * 60/*seconds*/ * 1000/*ms*/;
+const MAX_DOWNLOAD_TIME = 20/*minutes*/ * 60/*seconds*/ * 1000/*ms*/;
 
 let loginResponse = undefined;
 
@@ -27,7 +28,6 @@ function loginHttpRequest() {
             const url = `https://${clientEnv}.zimperium.com/api/auth/v1/api_keys/login`;
             core.debug(url);
             const clientInfo = JSON.stringify({"clientId": clientId, "secret": clientSecret});
-            core.debug(clientInfo);
             unirest('POST', url)
                 .headers({
                     'Content-Type': 'application/json'
@@ -44,9 +44,7 @@ function loginHttpRequest() {
 }
 
 async function uploadApp() {
-    core.debug("Uploading App");
-    const loginResponse = await loginHttpRequest()
-    core.debug(loginResponse.accessToken);
+    const loginResponse = await loginHttpRequest();
     return new Promise(function (resolve, reject) {
         const url = `https://${clientEnv}.zimperium.com/api/zdev-upload/pub/v1/uploads/build`
         unirest('POST', url )
@@ -95,19 +93,41 @@ async function pollStatus(buildId) {
 }
 
 async function downloadApp(appId) {
-    core.debug("downloadApp before Sleep 5sec");
-    await sleep(7500); //If you request the assessment too fast you get a 404.
-    core.debug("downloadApp after Sleep 5sec");
     const loginResponse = await loginHttpRequest()
     return new Promise(function (resolve, reject) {
         let url = `https://${clientEnv}.zimperium.com/api/zdev-app/pub/v1/assessments/${appId}/sarif`
         unirest('GET', url)
             .headers({'Authorization': 'Bearer ' + loginResponse.accessToken})
             .end(function (res) {
-                if (res.error) throw new Error(res.error);
-                fs.writeFileSync('Zimperium.sarif', Buffer.from(res.raw_body));
+                if (res.error && res.statusCode != 404) {
+                    throw new Error(res.error);
+                } else if (res.error) {
+                    resolve(res.statusCode);
+                } else {
+                    fs.writeFileSync('Zimperium.sarif.json', Buffer.from(res.raw_body));
+                    resolve(res.statusCode); //should be 200?
+                }
             });
     });
+}
+
+async function pollDownload(appId) {
+    await sleep(7500);
+    let done = false;
+    let totalTime = 0;
+    while(!done && totalTime < MAX_DOWNLOAD_TIME) {
+        let status = await downloadApp(appId);
+        console.log(`Poll Download ${status}`);
+        if(status == 200) {
+            core.debug(`Finished state: ${status}`);
+            done = true;
+            return status;
+        } else {
+            core.debug(`Download Sleeping: ${status}`);
+            totalTime += 15000;
+            await sleep(15000);
+        }
+    }
 }
 
 function sleep(ms) {
@@ -121,9 +141,8 @@ core.debug(`app: ${clientApp}`);
 
 uploadApp().then(uploadResult => {
     pollStatus(uploadResult.buildId).then(statusResult => {
-        downloadApp(statusResult.id).then(downloadResult => {
+        pollDownload(statusResult.id).then(downloadResult => {
             core.debug('Finished!');
         });
     });
 });
-
