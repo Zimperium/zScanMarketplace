@@ -1,21 +1,20 @@
-name: 'Zimperium zScan Action'
-description: 'Zimperium zScan Action'
+name: "zScan Action"
+description: "Upload an apk or ipa to zScan"
+author: "Zimperium"
+
 inputs:
   client_env: # REPLACE: Zimperium Environment Name
     required: true
     description: "Zimperium Console Client Environment Mnemonic"
     #default: "$CLIENT_ENV"
-
   client_id: # REPLACE: Zimperium Client ID
     required: true
     description: "zScan Console ID"
     #default: "$CLIENT_ID"
-  
   client_secret:
     required: true
     description: "zScan API Secret"
     #default: " ${{ secrets.ZSCAN_CLIENT_SECRET }}"
-
   app_file:
     required: true
     description: "APK or IPA File"
@@ -24,3 +23,6 @@ inputs:
 runs:
   using: 'node16'
   main: 'dist/index.js'
+branding:
+  icon: alert-octagon
+  color: blue
