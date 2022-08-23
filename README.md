@@ -1,17 +1,19 @@
-# `zscan-action`
+# `zimperium-zscan-action`
 
-The `zscan-action` delivers desc1, desc2, desc3 security analysis of iOS and Android apps coded in any language.
+The `zimperium-zscan-action` scans your mobile app binary (ios or android) and identifies the security, privacy, and compliance-related vulnerabilities.
 
 **Features**:
 
-- Feature 1
-- Feature 2
-- Feature 3
+- Identify risks and provide recommendations to mitigate the risk
+- Highlights the vulnerable code snippet
+- Lists the locations where the vulnerable code snippet was found
+- Integrates with GitHub Advanced Security (GHAS) to display issues and remediation information inside of GitHub code scanning alerts
+- Run scans for each merge or pull request
 
 ### Prerequisites
 
-- To use this action an active < account type > account is required. If you ***are not*** an existing Zimperium Platform customer, please [contact us](<contact url>).
-- An active GitHub account (cloud or on-prem) with an active Advanced Security feature
+- To use this action an active Zimperium zSCAN account is required. If you are not an existing Zimperium zSCAN customer, please [contact us](<contact form url>) for a free trial of this feature.
+- Requires either [GitHub Advanced Security](https://docs.github.com/en/get-started/learning-about-github/about-github-advanced-security) (GHAS) or a public repository in order to display issues and remediation information inside of GitHub code scanning alerts.
 
 ### GitHub Marketplace Setup (recommended)
 
@@ -33,8 +35,6 @@ For an _existing_ workflow,
 
 The action must be run on an `ubuntu-latest` GitHub Action runner.
 
-> Note: < Note any dependencies for the project >
-
 After the application build step run the zScan action and upload the SARIF to GHAS:
 
 ```yml
@@ -53,20 +53,10 @@ After the application build step run the zScan action and upload the SARIF to GH
         path: zScan.sarif
 ```
 
-### Custom Configuration (Optional)
-
-Related Info Block
-
-```yml
-code block
-```
-
-For a _new_ workflow,
-
 Add a new file called `zscan.yml` in your `.github/workflows` folder and review the [example](<insert example url>).
 
 ## License
 
-This project is released under the [<license type>](<insert url>).
+This project is released under the [MIT License](https://github.com/Zimperium/zScanMarketplace/blob/master/LICENSE).
 
-zScan Platform, used in this action, has separate [Terms and Conditions](<insert url>) and requires a valid license to function.
+Zimperium zScan Platform, used in this action, has separate [Terms and Conditions](https://www.zimperium.com/zimperium-eula/) and requires a valid license to function.
