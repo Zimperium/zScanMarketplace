@@ -20,7 +20,7 @@ function loginHttpRequest() {
     return new Promise(function (resolve, reject) {
         let expired = true;
         if(loginResponse != undefined) {
-            let claims = JSON.parse(new Buffer(loginResponse.accessToken.split('.')[1], 'base64'));
+            let claims = JSON.parse(new Buffer.from(loginResponse.accessToken.split('.')[1], 'base64'));
             if (Date.now() < claims.exp * 1000) {
                 expired = false;
                 resolve(loginResponse);
