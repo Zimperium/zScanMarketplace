@@ -7,8 +7,12 @@ const clientId = core.getInput('client_id', { required: false });
 const clientSecret = core.getInput('client_secret', { required: false });
 const clientApp = core.getInput('app_file', { required: false });
 
+const DOWNLOAD_POLL_TIME = 6/*seconds*/ * 1000/*ms*/;
+const STATUS_POLL_TIME = 30/*seconds*/ * 1000/*ms*/;
 const MAX_POLL_TIME = 45/*minutes*/ * 60/*seconds*/ * 1000/*ms*/;
 const MAX_DOWNLOAD_TIME = 20/*minutes*/ * 60/*seconds*/ * 1000/*ms*/;
+const ERROR_MESSAGE_403 = "The action failed due to incorrect credentials or trial license expiry. Please try again.\n" +
+    "If your 30-day trial period has ended, please email us at info@zimperium.com with your details to obtain a paid license."
 
 let loginResponse = undefined;
 
@@ -24,9 +28,8 @@ function loginHttpRequest() {
         }
 
         if (expired) {
-            core.debug("Requesting Auth Token");
             const url = `https://${clientEnv}.zimperium.com/api/auth/v1/api_keys/login`;
-            core.debug(url);
+            core.info(`Authenticating with $url`);
             const clientInfo = JSON.stringify({"clientId": clientId, "secret": clientSecret});
             unirest('POST', url)
                 .headers({
@@ -34,9 +37,14 @@ function loginHttpRequest() {
                 })
                 .send(clientInfo)
                 .end(function (res) {
-                    if (res.error) reject(res.error);
+                    if (res.error) {
+                        if( res.statusCode == 403 ) {
+                            core.info(ERROR_MESSAGE_403);
+                        }
+                        reject(res.error);
+                    }
                     loginResponse = JSON.parse(res.raw_body);
-                    core.debug("Setting login response");
+                    core.info("Authentication successful");
                     resolve(loginResponse);
                 });
         }
@@ -46,6 +54,7 @@ function loginHttpRequest() {
 async function uploadApp() {
     const loginResponse = await loginHttpRequest();
     return new Promise(function (resolve, reject) {
+        core.info("Uploading App to Zimperium zScan server")
         const url = `https://${clientEnv}.zimperium.com/api/zdev-upload/pub/v1/uploads/build`
         unirest('POST', url )
             .headers({'Content-Type': 'multipart/form-data', 'Authorization': 'Bearer ' + loginResponse.accessToken})
@@ -54,6 +63,7 @@ async function uploadApp() {
             .end(function (res) {
                 if (res.error)
                     reject(res.error);
+                core.info("App upload successful")
                 resolve(JSON.parse(res.raw_body));
             });
     });
@@ -74,21 +84,23 @@ async function statusHttpRequest(buildId) {
 }
 
 async function pollStatus(buildId) {
-    await sleep(30000);
+    await sleep(STATUS_POLL_TIME);
     let done = false;
     let totalTime = 0;
     while(!done && totalTime < MAX_POLL_TIME) {
         let status = await statusHttpRequest(buildId);
-        core.debug(status);
         if(status.zdevMetadata.analysis === 'Done' || status.zdevMetadata.analysis === 'Failed' ) {
-            core.debug(`Finished state: ${status.zdevMetadata.analysis}`);
+            core.info(`App zScan Finished - final state: ${status.zdevMetadata.analysis}`);
             done = true;
             return status;
         } else {
-            core.debug(`Sleeping: ${status.zdevMetadata.analysis}`);
-            totalTime += 30000;
-            await sleep(30000);
+            core.info(`Checking App zScan status`);
+            totalTime += STATUS_POLL_TIME;
+            await sleep(STATUS_POLL_TIME);
         }
+    }
+    if( totalTime >= MAX_POLL_TIME ) {
+        core.info()
     }
 }
 
@@ -112,20 +124,19 @@ async function downloadApp(appId) {
 }
 
 async function pollDownload(appId) {
-    await sleep(7500);
+    await sleep(DOWNLOAD_POLL_TIME);
     let done = false;
     let totalTime = 0;
     while(!done && totalTime < MAX_DOWNLOAD_TIME) {
         let status = await downloadApp(appId);
-        console.log(`Poll Download ${status}`);
         if(status == 200) {
-            core.debug(`Finished state: ${status}`);
+            core.info('Sarif file download complete.');
             done = true;
             return status;
         } else {
-            core.debug(`Download Sleeping: ${status}`);
-            totalTime += 15000;
-            await sleep(15000);
+            core.info('Sarif file download is not ready yet, waiting to try again.');
+            totalTime += DOWNLOAD_POLL_TIME;
+            await sleep(DOWNLOAD_POLL_TIME);
         }
     }
 }
@@ -136,18 +147,17 @@ function sleep(ms) {
 
 core.debug(`env ${clientEnv}`);
 core.debug(`id ${clientId}`);
-core.debug(`secret: ${clientSecret.substring(0,3)}`);
 core.debug(`app: ${clientApp}`);
 
 uploadApp().then(uploadResult => {
     pollStatus(uploadResult.buildId).then(statusResult => {
         pollDownload(statusResult.id).then(downloadResult => {
-            core.debug('Finished!');
+            core.info('Zimperium zScan Marketplace Action Finished');
             fs.stat('Zimperium.sarif', (err, stats) => {
                 if (err) {
-                    core.debug(`File doesn't exist.`);
+                    core.error(`ERROR: App Sarif file was not successfully created.`);
                 } else {
-                    core.debug(stats);
+                    core.info('App Sarif file successfully generated.');
                 }
             });
         });
