@@ -38186,7 +38186,7 @@ function loginHttpRequest() {
 
         if (expired) {
             const url = `https://${clientEnv}.zimperium.com/api/auth/v1/api_keys/login`;
-            core.info(`Authenticating with $url`);
+            core.info(`Authenticating with ${url}`);
             const clientInfo = JSON.stringify({"clientId": clientId, "secret": clientSecret});
             unirest('POST', url)
                 .headers({
@@ -38251,7 +38251,7 @@ async function pollStatus(buildId) {
             done = true;
             return status;
         } else {
-            core.info(`Checking App zScan status`);
+            core.info(`${new Date().toISOString()} - App zScan status is ${status.zdevMetadata.analysis}`);
             totalTime += STATUS_POLL_TIME;
             await sleep(STATUS_POLL_TIME);
         }
@@ -38291,7 +38291,7 @@ async function pollDownload(appId) {
             done = true;
             return status;
         } else {
-            core.info('Sarif file download is not ready yet, waiting to try again.');
+            core.info('Sarif file download is not ready, waiting to try again.');
             totalTime += DOWNLOAD_POLL_TIME;
             await sleep(DOWNLOAD_POLL_TIME);
         }
