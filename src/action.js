@@ -11,10 +11,12 @@ const DOWNLOAD_POLL_TIME = 6/*seconds*/ * 1000/*ms*/;
 const STATUS_POLL_TIME = 30/*seconds*/ * 1000/*ms*/;
 const MAX_POLL_TIME = 45/*minutes*/ * 60/*seconds*/ * 1000/*ms*/;
 const MAX_DOWNLOAD_TIME = 20/*minutes*/ * 60/*seconds*/ * 1000/*ms*/;
-const ERROR_MESSAGE_403 = "The action failed due to incorrect credentials or trial license expiry. Please try again.\n" +
-    "If your 30-day trial period has ended, please email us at info@zimperium.com with your details to obtain a paid license."
+const ERROR_MESSAGE_403 = "********************\n" +
+    "The action failed due to incorrect credentials or trial license expiry. Please try again.\n" +
+    "If your 30-day trial period has ended, please email us at info@zimperium.com with your details to obtain a paid license." +
+    "********************\n";
 
-let loginResponse = undefined;
+    let loginResponse = undefined;
 
 function loginHttpRequest() {
     return new Promise(function (resolve, reject) {
