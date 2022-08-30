@@ -1,0 +1,95 @@
+# An example workflow using the zScan action that builds an Android application
+# in the "build" phase and then runs it against zScan in the "scan" phase.
+# The "scan" phase uploads apk to zScan then retrieves and uploads the 
+# Zimperium zScan results to GitHub Advanced Security.
+# zScan action is run each time a commit is pushed to the "master" branch.
+
+name: "Zimperium zScan Action"
+
+on:
+  push:
+    branches: [master]
+  pull_request:
+    branches: [master]
+  workflow_dispatch:
+    branches: [master]
+    
+jobs:
+  build:
+    strategy:
+      matrix:
+        os: [ubuntu-latest]
+    runs-on: ${{ matrix.os }}
+    steps:
+    - uses: actions/checkout@v3
+    - uses: actions/setup-java@v3
+      with:
+        distribution: temurin
+        java-version: 11
+        
+    - name: Setup Gradle
+      uses: gradle/gradle-build-action@v2
+      with:
+        gradle-version: 7.3.3
+    
+    - name: Execute Gradle build
+      run: ./gradlew build
+
+    - name: Get apk path
+      id: apk-path
+      run: |
+        path=$(find **/build/outputs/apk -name '*.apk' -type f | head -1)
+        echo "::set-output name=path::$path"
+        
+    - name: Get apk info
+      id: apk-info
+      uses: hkusu/apk-info-action@v1
+      with:
+        apk-path: ${{ steps.apk-path.outputs.path }}
+
+    - name: Move Artifact
+      uses: actions/upload-artifact@v3
+      with:
+        name: my-artifact
+        path: ${{ steps.apk-path.outputs.path }}
+        if-no-files-found: error # 'warn' or 'ignore' are also available, defaults to `warn`
+  
+  scan:
+    strategy:
+      matrix:
+        os: [ubuntu-latest]
+    runs-on: ${{ matrix.os }}
+    needs: build
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v2
+
+    - name: Download application
+      uses: actions/download-artifact@v2
+      with:
+        name: my-artifact
+
+    - name: Zimperium
+      uses: zimperium/zscanmarketplace@v1
+      timeout-minutes: 60
+      with:
+        # REPLACE: Zimperium Client Environment Name
+        client_env: env_string
+        # REPLACE: Zimperium Client ID
+        client_id: id_string
+        # REPLACE: Zimperium Client Secret
+        client_secret: ${{ secrets.ZSCAN_CLIENT_SECRET }}
+        # REPLACE: The path to an .ipa or .apk
+        app_file: app-release-unsigned.apk
+
+    - name: Upload SARIF file
+      uses: github/codeql-action/upload-sarif@v2
+      with:
+        sarif_file: Zimperium.sarif
+
+    - name: Move Sarif
+      uses: actions/upload-artifact@v3
+      with:
+        name: sarif
+        path: Zimperium.sarif
+        if-no-files-found: error # 'warn' or 'ignore' are also available, defaults to `warn`
