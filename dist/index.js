@@ -38188,7 +38188,7 @@ function loginHttpRequest() {
 
         if (expired) {
             const url = `https://${clientEnv}.zimperium.com/api/auth/v1/api_keys/login`;
-            core.info(`Authenticating with ${url}`);
+            core.debug(`Authenticating with ${url}`);
             const clientInfo = JSON.stringify({"clientId": clientId, "secret": clientSecret});
             unirest('POST', url)
                 .headers({
@@ -38254,7 +38254,7 @@ async function pollStatus(buildId) {
     while(!done && totalTime < MAX_POLL_TIME) {
         let status = await statusHttpRequest(buildId);
         if(status.zdevMetadata.analysis === 'Done' || status.zdevMetadata.analysis === 'Failed' ) {
-            core.info(`App zScan Finished - final state: ${status.zdevMetadata.analysis}`);
+            core.info(`App zScan Finished - final status: ${status.zdevMetadata.analysis}`);
             done = true;
             return status;
         } else {
