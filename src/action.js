@@ -158,15 +158,17 @@ core.debug(`app: ${clientApp}`);
 
 uploadApp().then(uploadResult => {
     pollStatus(uploadResult.buildId).then(statusResult => {
-        pollDownload(statusResult.id).then(downloadResult => {
-            core.info('Zimperium zScan Marketplace Action Finished');
-            fs.stat('Zimperium.sarif', (err, stats) => {
-                if (err) {
-                    core.error(`ERROR: App Sarif file was not successfully created.`);
-                } else {
-                    core.info('App Sarif file successfully generated.');
-                }
+        if( statusResult.zdevMetadata.analysis !== 'Failed' ) {
+            pollDownload(statusResult.id).then(downloadResult => {
+                core.info('Zimperium zScan Marketplace Action Finished');
+                fs.stat('Zimperium.sarif', (err, stats) => {
+                    if (err) {
+                        core.error(`ERROR: App Sarif file was not successfully created.`);
+                    } else {
+                        core.info('App Sarif file successfully generated.');
+                    }
+                });
             });
-        });
+        }
     });
 });
