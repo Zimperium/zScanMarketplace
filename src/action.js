@@ -42,10 +42,11 @@ function loginHttpRequest() {
                             core.info(ERROR_MESSAGE_403);
                         }
                         reject(res.error);
+                    } else {
+                        loginResponse = JSON.parse(res.raw_body);
+                        core.info("Authentication successful");
+                        resolve(loginResponse);
                     }
-                    loginResponse = JSON.parse(res.raw_body);
-                    core.info("Authentication successful");
-                    resolve(loginResponse);
                 });
         }
     });
@@ -61,10 +62,12 @@ async function uploadApp() {
             .attach('buildFile', clientApp)
             .field('notifyUploader', 'false')
             .end(function (res) {
-                if (res.error)
+                if (res.error) {
                     reject(res.error);
-                core.info("App upload successful")
-                resolve(JSON.parse(res.raw_body));
+                } else {
+                    core.info("App upload successful")
+                    resolve(JSON.parse(res.raw_body));
+                }
             });
     });
 }
@@ -76,9 +79,11 @@ async function statusHttpRequest(buildId) {
         unirest('GET', url)
             .headers({'Authorization': 'Bearer ' + loginResponse.accessToken})
             .end(function (res) {
-                if (res.error) //The service is returning 500's even though it is still working
+                if (res.error) { //The service is returning 500's even though it is still working
                     resolve({zdevMetadata: {analysis: res.error.status}})
-                resolve(JSON.parse(res.raw_body));
+                } else {
+                    resolve(JSON.parse(res.raw_body));
+                }
             });
     });
 }
@@ -100,7 +105,7 @@ async function pollStatus(buildId) {
         }
     }
     if( totalTime >= MAX_POLL_TIME ) {
-        core.info()
+        core.error( 'Max waiting time has been exceeded.' );
     }
 }
 
