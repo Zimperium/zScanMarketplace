@@ -1,6 +1,7 @@
 # An example workflow using the zScan action that builds an Android application
 # in the "build" phase and then runs it against zScan in the "scan" phase.
-# The "upload" phase uploads the scan results to GitHub Advanced Security.
+# The "scan" phase uploads apk to zScan then retrieves and uploads the 
+# Zimperium zScan results to GitHub Advanced Security.
 # zScan action is run each time a commit is pushed to the "master" branch.
 
 name: "Zimperium zScan Action"
