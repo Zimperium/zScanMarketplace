@@ -54,7 +54,7 @@ jobs:
         path: ${{ steps.apk-path.outputs.path }}
         if-no-files-found: error # 'warn' or 'ignore' are also available, defaults to `warn`
   
-  scan:  
+  scan:
     strategy:
       matrix:
         os: [ubuntu-latest]
@@ -74,9 +74,9 @@ jobs:
       timeout-minutes: 60
       with:
         # REPLACE: Zimperium Client Environment Name
-        client_env: mtddev                          
+        client_env: env_string
         # REPLACE: Zimperium Client ID
-        client_id: MtVs8WLLRhOL5kMrfmgyBw
+        client_id: id_string
         # REPLACE: Zimperium Client Secret
         client_secret: ${{ secrets.ZSCAN_CLIENT_SECRET }}
         # REPLACE: The path to an .ipa or .apk
