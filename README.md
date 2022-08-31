@@ -12,7 +12,7 @@ The `zimperium-zscan-action` scans your mobile app binary (ios or android) and i
 
 ### Prerequisites
 
-- To use this action an active Zimperium zSCAN account is required. If you are not an existing Zimperium zSCAN customer, please [contact us](<contact form url>) for a free trial of this feature.
+- To use this action an active Zimperium zSCAN account is required. If you are not an existing Zimperium zSCAN customer, please email krishna.vishnubhotla@zimperium.com for a free trial of this feature.
 - Requires either [GitHub Advanced Security](https://docs.github.com/en/get-started/learning-about-github/about-github-advanced-security) (GHAS) or a public repository in order to display issues and remediation information inside of GitHub code scanning alerts.
 
 ### GitHub Marketplace Setup (recommended)
@@ -53,7 +53,7 @@ After the application build step run the zScan action and upload the SARIF to GH
         path: zScan.sarif
 ```
 
-Add a new file called `zscan.yml` in your `.github/workflows` folder and review the [example](<insert example url>).
+Add a new file called `zscan.yml` in your `.github/workflows` folder and review the [example](https://github.com/Zimperium/zScanMarketplace/blob/master/workflows/zScanAction.yml).
 
 ## License
 
