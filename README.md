@@ -1,6 +1,6 @@
-# `zimperium-zscan-action`
+# `zimperium-zscan`
 
-The `zimperium-zscan-action` scans your mobile app binary (ios or android) and identifies the security, privacy, and compliance-related vulnerabilities.
+The `zimperium-zscan` scans your mobile app binary (ios or android) and identifies the security, privacy, and compliance-related vulnerabilities.
 
 **Features**:
 
