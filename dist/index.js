@@ -38275,10 +38275,10 @@ async function downloadApp(appId) {
         unirest('GET', url)
             .headers({'Authorization': 'Bearer ' + loginResponse.accessToken})
             .end(function (res) {
-                if (res.error && res.statusCode != 404) {
-                    throw new Error(res.error);
+                if(res.error && (res.statusCode === 500 || res.statusCode === 404)) {
+                    resolve(res.statusCode)
                 } else if (res.error) {
-                    resolve(res.statusCode);
+                    throw new Error(res.error);
                 } else {
                     fs.writeFileSync('Zimperium.sarif', Buffer.from(res.raw_body));
                     resolve(res.statusCode); //should be 200?
