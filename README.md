@@ -16,7 +16,7 @@ The features for this action include:
 ​
 The prerequisites include the following:
 ​
-- An active Zimperium zScan account is required. If you are not an existing Zimperium zScan customer, please email krishna.vishnubhotla@zimperium.com for a free trial of this feature.
+- An active Zimperium zScan account is required. If you are not an existing Zimperium zScan customer, please request a zSCAN demo by clicking [here](https://www.zimperium.com/contact-us)
 - Either [GitHub Advanced Security](https://docs.github.com/en/get-started/learning-about-github/about-github-advanced-security) (GHAS) or a public repository is required to display issues and view the remediation information inside of GitHub code scanning alerts.
 ​
 ### GitHub Marketplace Setup (Recommended)
