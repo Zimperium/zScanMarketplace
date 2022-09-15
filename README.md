@@ -50,15 +50,14 @@ Perform the following steps to set up this action:
         - Enter the **Secret** field with the value you paste from Step 1 above, where you stored the secret.
         - Click **Add secret**.
          
-3. Search the GitHub Marketplace for the **zScan** action and set the values in the YML file.
+3. Set the values in the YML file for the workflow.
 ​
-    - Open the [GitHub Marketplace](https://github.com/marketplace) site.
-    - Search for **zScan** and select the **Zimperium zScan** GitHub action.
-    - See the section below **Required Configuration** for the actual text for the YML file. 
-    - If your repository has an existing workflow, you can add those two steps to your existing YML file. Or, you add it as a new file to your repository under the directory of `.github/workflows`, and the filename can be any name, such as `zscan.yml`.
+    - See the **Required Configuration** section below for the actual link of the YML file text and a snippet example to add to an existing workflow.  
+    - If your repository has an existing workflow, you can add those steps to your existing YML file. Or, you add it as a new file to your repository under the directory of `.github/workflows`. The filename can be any name, such as `zscan.yml`.
     - You must change two things in the YML file:
         - The `client_env` value needs to change to your subdomain value in your zConsole login URL. For instance, for `https://ziap.zimperium.com/login`, the client environment value is `ziap`.
         - The `client_id` value also needs to change. Paste from Step 1 above the value you stored for the client ID.
+    - For the path item in the example YML file, the `steps.apk-path.outputs.path` is a calculated field, and you do not need to set it in the file. However, you can set this value to a hard-coded location if needed.
     - Once you commit this workflow to the master branch, it triggers a run for each commit to master after you complete the setup steps.
 ​
 ## Viewing the Action Findings
@@ -76,7 +75,7 @@ Perform the following steps to view the output of this action:
 ​
     - Within your GitHub repository, click the **Security** tab. 
     - Click on **Code scanning**, and each finding is listed here.
-    - You can drill further into the details by clicking on each, and you can view:
+    - You can drill further into the details by clicking on each finding, and you can view:
         - Recommendations
         - Code Snippets
         - General Descriptions
@@ -85,9 +84,15 @@ Perform the following steps to view the output of this action:
 ​
 ## Required Configuration
 ​
-You must run the action on an `ubuntu-latest` GitHub Action runner for an existing workflow.
+You must run the action on an `ubuntu-latest` GitHub Action runner for an existing workflow. 
 ​
-After the application build step, run the zScan action and upload the SARIF to GHAS:
+After the application build step, run the zScan action and upload the SARIF to GHAS.
+​
+If you do not yet have a workflow, you can add a new file called `zscan.yml` in your `.github/workflows` folder.
+​
+Review the example at this location [https://github.com/Zimperium/zScanMarketplace/blob/master/workflows/zScanAction.yml](https://github.com/Zimperium/zScanMarketplace/blob/master/workflows/zScanAction.yml).​
+​
+This is a sample snippet from the above YML link:
 ​
 ```yml
     - name: Zimperium
@@ -104,9 +109,7 @@ After the application build step, run the zScan action and upload the SARIF to G
       with:
         path: zScan.sarif
 ```
-​
-Add a new file called `zscan.yml` in your `.github/workflows` folder and review the [example](https://github.com/Zimperium/zScanMarketplace/blob/master/workflows/zScanAction.yml).
-​
+​​
 ## License
 ​
 This project is released under the [MIT License](https://github.com/Zimperium/zScanMarketplace/blob/master/LICENSE).
