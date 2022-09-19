@@ -118,7 +118,7 @@ async function downloadApp(appId) {
         unirest('GET', url)
             .headers({'Authorization': 'Bearer ' + loginResponse.accessToken})
             .end(function (res) {
-                if(res.error && (res.statusCode === 500 || res.statusCode === 404)) {
+                if(res.error && res.statusCode === 404) {
                     resolve(res.statusCode)
                 } else if (res.error) {
                     throw new Error(res.error);
