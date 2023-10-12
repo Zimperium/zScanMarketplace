@@ -1,6 +1,6 @@
 # `zimperium-zscan`
 ​
-The `zimperium-zscan` GitHub action scans your mobile app binary (iOS or Android) and identifies security, privacy, and compliance-related vulnerabilities.
+Scan your mobile app binaries and identify security, privacy, and compliance-related vulnerabilities. Free Trial Available.
 ​
 ## Features
 ​
