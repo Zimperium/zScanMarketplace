@@ -1,5 +1,5 @@
 name: "Zimperium zScan"
-description: "The zScan Action scans mobile app binary iOS or Android and identifies the security, privacy, and compliance vulnerabilities."
+description: "​Scan your iOS & Android mobile app binaries to identify security, privacy, and compliance-related vulnerabilities. Free Trial Available!"
 author: "Zimperium"
 
 inputs:
