@@ -10,6 +10,22 @@ The zimperium-zscan action scans your mobile app binary (ios or android) and ide
     - Integrates with GitHub Advanced Security (GHAS) to display issues and remediation information inside of GitHub code scanning alerts
     - Run scans for each merge or pull request
 
+## Example Workflow
+
+     - name: Run Zimperium zScan
+            uses: zimperium/zscanmarketplace@v1
+            timeout-minutes: 60
+            with:
+              client_env: mapsfreemium
+              client_id: <Paste CLIENT_ID here>
+              client_secret: ${{ secrets.ZSCAN_CLIENT_SECRET }}
+              app_file: ./InsecureBankv2.apk
+
+          - name: Upload SARIF file
+            uses: github/codeql-action/upload-sarif@v2
+            with:  
+              sarif_file: Zimperium.sarif
+
 ## GitHub Prerequisites
   - If you use an Enterprise GitHub account, you need a GitHub Advanced Security (GHAS) license to use the zScan Action.
   - If you are using a Public repository, GHAS, and Code Scanning are already enabled for you by default. 
