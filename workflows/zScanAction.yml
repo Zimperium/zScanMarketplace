@@ -1,95 +1,60 @@
-# An example workflow using the zScan action that builds an Android application
-# in the "build" phase and then runs it against zScan in the "scan" phase.
-# The "scan" phase uploads apk to zScan then retrieves and uploads the 
-# Zimperium zScan results to GitHub Advanced Security.
-# zScan action is run each time a commit is pushed to the "master" branch.
+# This workflow uses actions that are not certified by GitHub.
+# They are provided by a third-party and are governed by
+# separate terms of service, privacy policy, and support
+# documentation.
+#
+# The zimperium-zscan GitHub action scans your mobile app binary (iOS or Android)
+# and identifies security, privacy, and compliance-related vulnerabilities. ​
+#
+# Prerequisites:
+#  * An active Zimperium zScan account is required. If you are not an existing Zimperium
+#    zScan customer, please request a zSCAN demo by visiting https://www.zimperium.com/contact-us.
+#  * Either GitHub Advanced Security (GHAS) or a public repository is required to display
+#    issues and view the remediation information inside of GitHub code scanning alerts.​
+#
+# For additional information and setup instructions
+# please visit:  https://github.com/Zimperium/zScanMarketplace#readme
 
-name: "Zimperium zScan Action"
+name: "Zimperium zScan"
 
 on:
   push:
-    branches: [master]
+    branches: [ "main" ]
   pull_request:
-    branches: [master]
-  workflow_dispatch:
-    branches: [master]
-    
+    branches: [ "main" ]
+
+permissions:
+  contents: read
+
 jobs:
-  build:
-    strategy:
-      matrix:
-        os: [ubuntu-latest]
-    runs-on: ${{ matrix.os }}
+  zscan:
+    name: zScan
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read          # for actions/checkout to fetch code
+      security-events: write  # for github/codeql-action/upload-sarif to upload SARIF results
+      actions: read           # only required for a private repository by github/codeql-action/upload-sarif to get the Action run status
     steps:
-    - uses: actions/checkout@v3
-    - uses: actions/setup-java@v3
-      with:
-        distribution: temurin
-        java-version: 11
-        
-    - name: Setup Gradle
-      uses: gradle/gradle-build-action@v2
-      with:
-        gradle-version: 7.3.3
-    
-    - name: Execute Gradle build
-      run: ./gradlew build
+      - name: Checkout repository
+        uses: actions/checkout@v3
 
-    - name: Get apk path
-      id: apk-path
-      run: |
-        path=$(find **/build/outputs/apk -name '*.apk' -type f | head -1)
-        echo "::set-output name=path::$path"
-        
-    - name: Get apk info
-      id: apk-info
-      uses: hkusu/apk-info-action@v1
-      with:
-        apk-path: ${{ steps.apk-path.outputs.path }}
-
-    - name: Move Artifact
-      uses: actions/upload-artifact@v3
-      with:
-        name: my-artifact
-        path: ${{ steps.apk-path.outputs.path }}
-        if-no-files-found: error # 'warn' or 'ignore' are also available, defaults to `warn`
-  
-  scan:
-    strategy:
-      matrix:
-        os: [ubuntu-latest]
-    runs-on: ${{ matrix.os }}
-    needs: build
-    steps:
-    - name: Checkout repository
-      uses: actions/checkout@v2
-
-    - name: Download application
-      uses: actions/download-artifact@v2
-      with:
-        name: my-artifact
-
-    - name: Zimperium
-      uses: zimperium/zscanmarketplace@v1
-      timeout-minutes: 60
-      with:
+  #  - name: Execute gradle build
+  #    run: echo "./gradlew build"
+      
+      - name: Run Zimperium zScan
+        uses: zimperium/zscanmarketplace@bfc6670f6648d796098c251ccefcfdb98983174d
+        timeout-minutes: 60
+        with:
         # REPLACE: Zimperium Client Environment Name
-        client_env: env_string
+          client_env: mapsfreemium
         # REPLACE: Zimperium Client ID
-        client_id: id_string
+          client_id: CNm4gbdCRIyIkv-yjUZ0_1
         # REPLACE: Zimperium Client Secret
-        client_secret: ${{ secrets.ZSCAN_CLIENT_SECRET }}
+          client_secret: ${{ secrets.ZSCAN_CLIENT_SECRET }}
         # REPLACE: The path to an .ipa or .apk
-        app_file: app-release-unsigned.apk
+          app_file: ./InsecureBankv2.apk
 
-    - name: Upload SARIF file
-      uses: github/codeql-action/upload-sarif@v2
-      with:
-        sarif_file: Zimperium.sarif
-
-    - name: Move Sarif
-      uses: actions/upload-artifact@v3
-      with:
-        name: sarif
-        path: Zimperium.sarif
-        if-no-files-found: error # 'warn' or 'ignore' are also available, defaults to `warn`
+      - name: Upload SARIF file
+        uses: github/codeql-action/upload-sarif@v2
+        with:  
+          sarif_file: Zimperium.sarif
