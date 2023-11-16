@@ -3,7 +3,7 @@
 
 The zimperium-zscan action scans your mobile app binary (ios or android) and identifies the security, privacy, and compliance-related vulnerabilities.
 
-## Features:
+## Features
     - Identify risks and provide recommendations to mitigate the risk
     - Highlights the vulnerable code snippet
     - Lists the locations where the vulnerable code snippet was found
@@ -13,6 +13,23 @@ The zimperium-zscan action scans your mobile app binary (ios or android) and ide
 ## GitHub Prerequisites
   - If you use an Enterprise GitHub account, you need a GitHub Advanced Security (GHAS) license to use the zScan Action.
   - If you are using a Public repository, GHAS, and Code Scanning are already enabled for you by default. 
+
+## Example Workflow
+
+     - name: Run Zimperium zScan
+            uses: zimperium/zscanmarketplace@bfc6670f6648d796098c251ccefcfdb98983174d
+            timeout-minutes: 60
+            with:
+              client_env: mapsfreemium
+              client_id: CNm4gbdqpIyIkv-yjUZ0_
+              client_secret: ${{ secrets.ZSCAN_CLIENT_SECRET }}
+              app_file: ./InsecureBankv2.apk
+    
+          - name: Upload SARIF file
+            uses: github/codeql-action/upload-sarif@v2
+            with:  
+              sarif_file: Zimperium.sarif
+
 
 ## Get Started 
 
