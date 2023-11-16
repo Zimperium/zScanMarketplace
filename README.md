@@ -29,7 +29,7 @@ The zimperium-zscan action scans your mobile app binary (ios or android) and ide
      
 - **If you want to enroll in our 30 Day FREE TRIAL**
 
-    - 1. Registration - Please fill out this [form](https://get.zimperium.com/github-action-zscan/) to register for the free trial
+    - 1. Registration - Please fill out this [form](https://get.zimperium.com/github-action-zscan/) to register for the free trial.
     - 2. Post Registration 
         - **API Secret Key** - Once you submit the registration form, an API Key will be immediately displayed. This is your ZSCAN_CLIENT_SECRET. PLEASE SAVE THIS KEY.
         - **API CLIENT ID** - A second key will be sent to the email address you provided during registration. This is your CLIENT_ID.
@@ -60,28 +60,28 @@ The secret is being added so that you can use it in the zScan workflow next. Fol
 5. Click Add secret.
 
 ### Step 4 - Add and Configure zSCAN Workflow in GitHub
-1. Click the "Security" tab in your repository (GHAS must be enabled)
+1. Click the "Security" tab in your repository (GHAS must be enabled).
 2. Click "Set up code scanning" under “Vulnerability Alert” on the left navigation pane.
-3. Click “Configure Scanning Tool”
-4. Under the Code Scanning section, click “Explore Workflows”
-5. Enter “zScan” in the search box and hit enter
+3. Click “Configure Scanning Tool”.
+4. Under the Code Scanning section, click “Explore Workflows”.
+5. Enter “zScan” in the search box and hit enter.
 6. The zScan action is displayed. Click the “Configure” button.
 7. The zScan.yml file will automatically be opened.
-8. Click the Edit button and make the following changes in the zscan.yml file
-9. Change the value for client_env
+8. Click the Edit button and make the following changes in the zscan.yml file.
+9. Change the value for client_env.
     - If you are a FREE TRIAL USER, then make sure the line reads “client_env: mapsfreemium”.
     - If you are a zScan customer, please review the zScan user guide for the right value. 
-    - Please Note: The two spaces after “:” are MANDATORY
-10. Change the value for client_id
+    - Please Note: The two spaces after “:” are MANDATORY.
+10. Change the value for client_id.
     - Where it says “client_id: CNm4gbdCRIyIkv-yjUZ0_K”, change “CNm4gbdCRIyIkv-yjUZ0_K” with the CLIENT_ID from Step 1.
-    - Change the value for app_file
-11. Change the value to the location of the .ipa or .apk files you want to submit to zScan.
-    - If the file is the main repository folder then you can change the value to “app_file: ./<appfilename>”. A good example would be "app_file: ./InsecureBankv2.apk"
-12. Click “Commit changes” , choose “Commit directly to the main branch.” and commit the changes.
+11. Change the value for app_file.
+    - Change the value to the location of the .ipa or .apk files you want to submit to zScan.
+    - If the file is the main repository folder then you can change the value to “app_file: ./<appfilename>”. A good example would be "app_file: ./InsecureBankv2.apk".
+12. Click “Commit changes”,choose “Commit directly to the main branch.” and commit the changes.
 13. Committing the changes automatically runs the zscan action. 
 
 ### Step 5 - View app scan results in GitHub
-1. Click “Security” on the top navigation bar
+1. Click “Security” on the top navigation bar.
 2. Under Security in the left navigation bar, click “Code Scanning” to view all the scan results.
 
 ### Adding zScan to an existing worklow
