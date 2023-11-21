@@ -28,7 +28,7 @@ The zimperium-zscan action scans your mobile app binary (ios or android) and ide
 
 ## GitHub Prerequisites
   - If you use an Enterprise GitHub account, you need a GitHub Advanced Security (GHAS) license to use the zScan Action.
-  - If you are using a Public repository, GHAS, and Code Scanning are already enabled for you by default. 
+  - If you use a Public repository, GHAS, and Code Scanning are already enabled by default. 
 
 ## Get Started 
 
@@ -43,7 +43,7 @@ The zimperium-zscan action scans your mobile app binary (ios or android) and ide
     - 8. Click the copy icons and store both the client ID (CLIENT_ID) and the client secret (ZSCAN_CLIENT_SECRET) values.
     - 9. Click Close.​
      
-- **If you want to enroll in our 30 Day FREE TRIAL**
+- **If you want to enroll in our 30-Day FREE TRIAL**
 
     - 1. Registration - Please fill out this [form](https://get.zimperium.com/github-action-zscan/) to register for the free trial.
     - 2. Post Registration 
@@ -64,7 +64,7 @@ You need to enable GHAS to display issues and remediation information inside of 
 1. Click the Settings tab in your GitHub repository.
 2. Click Code Security and Analysis on the left navigation pane under the Security section.
 3. Click Enable for GitHub Advanced Security and confirm the setting. This permits code scanning and secret scanning.
-4. Under GHAS, ensure that Set up code scanning is enabled. This is a required step.
+4. Under GHAS, ensure that "Set up code scanning" is enabled. This is a required step.
 
 
 ### Step 3 - Add a Repository Secret in GitHub
@@ -73,7 +73,7 @@ The secret is being added so that you can use it in the zScan workflow next. Fol
 2. Click the “New repository secret” button.
 3. Enter the Name field for the secret as ZSCAN_CLIENT_SECRET.
 4. Enter the API Secret Key you obtained from Step 1
-5. Click Add secret.
+5. Click "Add secret".
 
 ### Step 4 - Add and Configure zSCAN Workflow in GitHub
 1. Click the "Security" tab in your repository (GHAS must be enabled).
