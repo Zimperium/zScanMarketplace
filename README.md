@@ -1,4 +1,4 @@
-# Zimperium zSCAN 
+# Zimperium zScan 
 ## Mobile Application Security Testing
 
 The zimperium-zscan action scans your mobile app binary (ios or android) and identifies the security, privacy, and compliance-related vulnerabilities.
@@ -33,7 +33,7 @@ The zimperium-zscan action scans your mobile app binary (ios or android) and ide
 ## Get Started 
 
 ### Step 1 - Get API Keys 
- - **If you are an existing Zimperium zSCAN Customer**
+ - **If you are an existing Zimperium zScan Customer**
     - 1. Log in to the zConsole user interface zScan platform.
     - 2. Click the Account Management gear icon.
     - 4. Click the Authorizations menu item.
@@ -43,7 +43,7 @@ The zimperium-zscan action scans your mobile app binary (ios or android) and ide
     - 8. Click the copy icons and store both the client ID (CLIENT_ID) and the client secret (ZSCAN_CLIENT_SECRET) values.
     - 9. Click Close.​
      
-- **If you want to enroll in our 30-Day FREE TRIAL**
+- **If you want to enroll in our 30 Day FREE TRIAL**
 
     - 1. Registration - Please fill out this [form](https://get.zimperium.com/github-action-zscan/) to register for the free trial.
     - 2. Post Registration 
@@ -56,22 +56,26 @@ To set up the action, you need both keys.
     - Resubmit the registration form with the same email address. This will not restart the trial, but it will provide you with new trial keys.
       
 - **If I need assistance, what should I do?**
-    - Send an email to krishna.vishnubhotla@zimperium.com with the details. The subject of the email should be "GitHub zScan Action Free Trail".
+    - Send an email to zscanGithubTrial-support@zimperium.com with the details. The subject of the email should be "GitHub zScan Action Free Trial".
 
-### Step 2 - Enable GHAS in GitHub
+### Step 2 - Enable GHAS in GitHub (Enterprise GitHub accounts only)
 
-You need to enable GHAS to display issues and remediation information inside of GitHub code scanning alerts.  Once you acquire the GHAS license, follow the instructions below to enable GHAS.
-1. Click the Settings tab in your GitHub repository.
+You need to enable GHAS to display issues and remediation information inside of GitHub code scanning alerts. Once you acquire the GHAS license, follow the instructions below to enable GHAS. 
+
+**Please Note:** If you are using a Public repository, GHAS, and Code Scanning are already enabled for you by default.
+
+1. Click the Settings tab in your GitHub account.
 2. Click Code Security and Analysis on the left navigation pane under the Security section.
 3. Click Enable for GitHub Advanced Security and confirm the setting. This permits code scanning and secret scanning.
-4. Under GHAS, ensure that "Set up code scanning" is enabled. This is a required step.
+4. Under GHAS, ensure that Code Scanning is enabled. This is a required step.
 
 
-### Step 3 - Add a Repository Secret in GitHub
+### Step 3 - Add a Repository Secret in GitHub Repository
 The secret is being added so that you can use it in the zScan workflow next. Follow the instructions below to add a secret.
-1. Under Security, select “Secrets and Variables” and then Actions.
+
+1. Within a Repository, go to Settings. Under Security, select “Secrets and Variables” and then “Actions.”
 2. Click the “New repository secret” button.
-3. Enter the Name field for the secret as ZSCAN_CLIENT_SECRET.
+3. Enter ZSCAN_CLIENT_SECRET in the Name field.
 4. Enter the API Secret Key you obtained from Step 1
 5. Click "Add secret".
 
@@ -93,17 +97,18 @@ The secret is being added so that you can use it in the zScan workflow next. Fol
 11. Change the value for app_file.
     - Change the value to the location of the .ipa or .apk files you want to submit to zScan.
     - If the file is the main repository folder then you can change the value to “app_file: ./<appfilename>”. A good example would be "app_file: ./InsecureBankv2.apk".
-12. Click “Commit changes”,choose “Commit directly to the main branch.” and commit the changes.
-13. Committing the changes automatically runs the zscan action. 
+12. Click “Commit changes” and choose “Commit directly to the main branch.” and commit the changes.
+13. Committing the changes automatically runs the zScan action.
 
 ### Step 5 - View app scan results in GitHub
 1. Click “Security” on the top navigation bar.
 2. Under Security in the left navigation bar, click “Code Scanning” to view all the scan results.
 
-### Adding zScan to an existing worklow
-​You must run the action on an ubuntu-latest GitHub Action runner for an existing workflow.  ​If you do not yet have a workflow, you can add a new file called zscan.yml in your .github/workflows folder.  ​Review the example at this location https://github.com/Zimperium/zScanMarketplace/blob/master/workflows/zScanAction.yml.​​ 
+### Adding zScan to an existing workflow
+​You must run the action on an ubuntu-latest GitHub Action runner for an existing workflow.  ​If you do not yet have a workflow, you can add a new file called zscan.yml in your .github/workflows folder. 
+​Review the example at this location https://github.com/Zimperium/zScanMarketplace/tree/master/workflows.
 
-### Ready To Purchase zSCAN
+### Ready To Purchase zScan
 Click [here](https://get.zimperium.com/purchase-zscan/) to start the process and get some promotional pricing.
 
 ### License
