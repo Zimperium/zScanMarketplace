@@ -38235,6 +38235,7 @@ async function statusHttpRequest(buildId) {
     const loginResponse = await loginHttpRequest()
     return new Promise(function (resolve, reject) {
         const url = `https://${clientEnv}.zimperium.com/api/zdev-app/pub/v1/assessments/status?buildId=${buildId}`
+        core.debug(`url ${buildId}`);
         unirest('GET', url)
             .headers({'Authorization': 'Bearer ' + loginResponse.accessToken})
             .end(function (res) {
