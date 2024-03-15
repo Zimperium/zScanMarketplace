@@ -108,6 +108,9 @@ The secret is being added so that you can use it in the zScan workflow next. Fol
 ​You must run the action on an ubuntu-latest GitHub Action runner for an existing workflow.  ​If you do not yet have a workflow, you can add a new file called zscan.yml in your .github/workflows folder. 
 ​Review the example at this location https://github.com/Zimperium/zScanMarketplace/tree/master/workflows.
 
+### If You Run Into Issues
+File issues for missing content or errors. Explain what you think is missing and give a suggestion as to where it could be added.
+
 ### Ready To Purchase zScan
 Click [here](https://get.zimperium.com/purchase-zscan/) to start the process and get some promotional pricing.
 
