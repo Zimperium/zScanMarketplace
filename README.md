@@ -94,9 +94,11 @@ The secret is being added so that you can use it in the zScan workflow next. Fol
     - Please Note: The two spaces after “:” are MANDATORY.
 10. Change the value for client_id.
     - Where it says “client_id: CNm4gbdCRIyIkv-yjUZ0_K”, change “CNm4gbdCRIyIkv-yjUZ0_K” with the CLIENT_ID from Step 1.
-11. Change the value for app_file.
-    - Change the value to the location of the .ipa or .apk files you want to submit to zScan.
-    - If the file is the main repository folder then you can change the value to “app_file: ./<appfilename>”. A good example would be "app_file: ./InsecureBankv2.apk".
+11. Upload the app you want to scan and change the value of the app_file variable.
+    - Upload the app you want to scan to your main repo folder.
+    - Next you need to change the value of the "app_file" variable to indicate the app name and its location in the repo.
+    - If the app file is the main repository folder then you can change the value to “app_file: ./<appfilename>”. Example "app_file: ./MyBank.apk”.  Else update the location accordingly.
+    - If you want to use the default "app_file: ./InsecureBankv2.apk", then download the InsecureBankv2 app [here](https://github.com/dineshshetty/Android-InsecureBankv2/releases/download/2.3.1/InsecureBankv2.apk) and upload it into your repo.
 12. Click “Commit changes” and choose “Commit directly to the main branch.” and commit the changes.
 13. Committing the changes automatically runs the zScan action.
 
@@ -107,6 +109,9 @@ The secret is being added so that you can use it in the zScan workflow next. Fol
 ### Adding zScan to an existing workflow
 ​You must run the action on an ubuntu-latest GitHub Action runner for an existing workflow.  ​If you do not yet have a workflow, you can add a new file called zscan.yml in your .github/workflows folder. 
 ​Review the example at this location https://github.com/Zimperium/zScanMarketplace/tree/master/workflows.
+
+### If You Run Into Issues
+File [issues](https://github.com/Zimperium/zScanMarketplace/issues) for missing content or errors. Explain what you think is missing and give a suggestion as to where it could be added.
 
 ### Ready To Purchase zScan
 Click [here](https://get.zimperium.com/purchase-zscan/) to start the process and get some promotional pricing.
