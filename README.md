@@ -45,7 +45,7 @@ The zimperium-zscan action scans your mobile app binary (ios or android) and ide
      
 - **If you want to enroll in our 30 Day FREE TRIAL**
 
-    - 1. Registration - Please fill out this [form](https://get.zimperium.com/github-action-zscan/) to register for the free trial.
+    - 1. Registration - Please fill out this [form](https://www.zimperium.com/github-action-zscan/) to register for the free trial.
     - 2. Post Registration 
         - **API Secret Key** - Once you submit the registration form, an API Key will be immediately displayed. This is your ZSCAN_CLIENT_SECRET. PLEASE SAVE THIS KEY.
         - **API CLIENT ID** - A second key will be sent to the email address you provided during registration. This is your CLIENT_ID.
