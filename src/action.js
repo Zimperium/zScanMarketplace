@@ -18,7 +18,10 @@ const ERROR_MESSAGE_403 = "********************\n" +
     "********************\n";
 
 let loginResponse = undefined;
-const baseUrl = (consoleUrl != undefined) ? consoleUrl : `${clientEnv}.zimperium.com`;
+const baseUrl = (!consoleUrl) ? `https://${clientEnv}.zimperium.com` : consoleUrl;
+if (baseUrl.endsWith('/')) {
+    baseUrl = baseUrl.slice(0, -1);
+}
 core.debug(`Base URL: ${baseUrl}`);
 
 function loginHttpRequest() {
@@ -33,7 +36,7 @@ function loginHttpRequest() {
         }
 
         if (expired) {
-            const url = `https://${baseUrl}/api/auth/v1/api_keys/login`;
+            const url = `${baseUrl}/api/auth/v1/api_keys/login`;
             core.debug(`Authenticating with ${url}`);
             const clientInfo = JSON.stringify({"clientId": clientId, "secret": clientSecret});
             unirest('POST', url)
@@ -61,7 +64,7 @@ async function uploadApp() {
     const loginResponse = await loginHttpRequest();
     return new Promise(function (resolve, reject) {
         core.info("Uploading App to Zimperium zScan server")
-        const url = `https://${baseUrl}/api/zdev-upload/public/v1/uploads/build`
+        const url = `${baseUrl}/api/zdev-upload/public/v1/uploads/build`
         unirest('POST', url )
             .headers({'Content-Type': 'multipart/form-data', 'Authorization': 'Bearer ' + loginResponse.accessToken})
             .attach('buildFile', clientApp)
@@ -80,7 +83,7 @@ async function uploadApp() {
 async function statusHttpRequest(buildId) {
     const loginResponse = await loginHttpRequest()
     return new Promise(function (resolve, reject) {
-        const url = `https://${baseUrl}/api/zdev-app/public/v1/assessments/status?buildId=${buildId}`
+        const url = `${baseUrl}/api/zdev-app/public/v1/assessments/status?buildId=${buildId}`
         unirest('GET', url)
             .headers({'Authorization': 'Bearer ' + loginResponse.accessToken})
             .end(function (res) {
@@ -117,7 +120,7 @@ async function pollStatus(buildId) {
 async function downloadApp(appId) {
     const loginResponse = await loginHttpRequest()
     return new Promise(function (resolve, reject) {
-        let url = `https://${baseUrl}/api/zdev-app/public/v1/assessments/${appId}/sarif`
+        let url = `${baseUrl}/api/zdev-app/public/v1/assessments/${appId}/sarif`
         unirest('GET', url)
             .headers({'Authorization': 'Bearer ' + loginResponse.accessToken})
             .end(function (res) {
@@ -156,7 +159,9 @@ function sleep(ms) {
 }
 
 core.debug(`env ${clientEnv}`);
+core.debug(`console url ${consoleUrl}`);
 core.debug(`id ${clientId}`);
+core.debug(`secret ` + clientSecret.slice(0, 10) + `...`);
 core.debug(`app: ${clientApp}`);
 
 uploadApp().then(uploadResult => {
