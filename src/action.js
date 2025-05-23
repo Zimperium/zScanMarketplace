@@ -3,6 +3,7 @@ const core = require('@actions/core');
 const fs = require('fs');
 
 const clientEnv = core.getInput('client_env', { required: false });
+const consoleUrl = core.getInput('console_url', { required: false });
 const clientId = core.getInput('client_id', { required: false });
 const clientSecret = core.getInput('client_secret', { required: false });
 const clientApp = core.getInput('app_file', { required: false });
@@ -16,7 +17,12 @@ const ERROR_MESSAGE_403 = "********************\n" +
     "If your 30-day trial period has ended, please email us at info@zimperium.com with your details to obtain a paid license.\n" +
     "********************\n";
 
-    let loginResponse = undefined;
+let loginResponse = undefined;
+const baseUrl = (!consoleUrl) ? `https://${clientEnv}.zimperium.com` : consoleUrl;
+if (baseUrl.endsWith('/')) {
+    baseUrl = baseUrl.slice(0, -1);
+}
+core.debug(`Base URL: ${baseUrl}`);
 
 function loginHttpRequest() {
     return new Promise(function (resolve, reject) {
@@ -30,7 +36,7 @@ function loginHttpRequest() {
         }
 
         if (expired) {
-            const url = `https://${clientEnv}.zimperium.com/api/auth/v1/api_keys/login`;
+            const url = `${baseUrl}/api/auth/v1/api_keys/login`;
             core.debug(`Authenticating with ${url}`);
             const clientInfo = JSON.stringify({"clientId": clientId, "secret": clientSecret});
             unirest('POST', url)
@@ -58,7 +64,7 @@ async function uploadApp() {
     const loginResponse = await loginHttpRequest();
     return new Promise(function (resolve, reject) {
         core.info("Uploading App to Zimperium zScan server")
-        const url = `https://${clientEnv}.zimperium.com/api/zdev-upload/pub/v1/uploads/build`
+        const url = `${baseUrl}/api/zdev-upload/public/v1/uploads/build`
         unirest('POST', url )
             .headers({'Content-Type': 'multipart/form-data', 'Authorization': 'Bearer ' + loginResponse.accessToken})
             .attach('buildFile', clientApp)
@@ -77,7 +83,7 @@ async function uploadApp() {
 async function statusHttpRequest(buildId) {
     const loginResponse = await loginHttpRequest()
     return new Promise(function (resolve, reject) {
-        const url = `https://${clientEnv}.zimperium.com/api/zdev-app/pub/v1/assessments/status?buildId=${buildId}`
+        const url = `${baseUrl}/api/zdev-app/public/v1/assessments/status?buildId=${buildId}`
         unirest('GET', url)
             .headers({'Authorization': 'Bearer ' + loginResponse.accessToken})
             .end(function (res) {
@@ -114,7 +120,7 @@ async function pollStatus(buildId) {
 async function downloadApp(appId) {
     const loginResponse = await loginHttpRequest()
     return new Promise(function (resolve, reject) {
-        let url = `https://${clientEnv}.zimperium.com/api/zdev-app/pub/v1/assessments/${appId}/sarif`
+        let url = `${baseUrl}/api/zdev-app/public/v1/assessments/${appId}/sarif`
         unirest('GET', url)
             .headers({'Authorization': 'Bearer ' + loginResponse.accessToken})
             .end(function (res) {
@@ -153,7 +159,9 @@ function sleep(ms) {
 }
 
 core.debug(`env ${clientEnv}`);
+core.debug(`console url ${consoleUrl}`);
 core.debug(`id ${clientId}`);
+core.debug(`secret ` + clientSecret.slice(0, 10) + `...`);
 core.debug(`app: ${clientApp}`);
 
 uploadApp().then(uploadResult => {
@@ -163,9 +171,9 @@ uploadApp().then(uploadResult => {
                 core.info('Zimperium zScan Marketplace Action Finished');
                 fs.stat('Zimperium.sarif', (err, stats) => {
                     if (err) {
-                        core.error(`ERROR: App Sarif file was not successfully created.`);
+                        core.error(`ERROR: Assessment results file was not successfully created.`);
                     } else {
-                        core.info('App Sarif file successfully generated.');
+                        core.info('Assessment results file successfully generated.');
                     }
                 });
             });

@@ -47,15 +47,15 @@ jobs:
         with:
 
         # REPLACE: Zimperium Client Environment Name
-          client_env: <Paste Client Env Name Here>
+          client_env: zc202
         # REPLACE: Zimperium Client ID
-          client_id: <Paste CLIENT_ID Here>
+          client_id: ${{ secrets.ZSCAN_CLIENT_ID }}
         # REPLACE: Zimperium Client Secret
           client_secret: ${{ secrets.ZSCAN_CLIENT_SECRET }}
         # REPLACE: The path to an .ipa or .apk
-          app_file: ./InsecureBankv2.apk
+          app_file: ./Sample_Insecure_Bank_App.apk
 
       - name: Upload SARIF file
-        uses: github/codeql-action/upload-sarif@v2
+        uses: github/codeql-action/upload-sarif@v3
         with:  
           sarif_file: Zimperium.sarif
