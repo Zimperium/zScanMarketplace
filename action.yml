@@ -3,8 +3,12 @@ description: "Scan your iOS & Android mobile app binaries to identify security, 
 author: "Zimperium"
 
 inputs:
+  console_url: # REPLACE: Zimperium Console URL
+    required: false
+    description: "Zimperium Console URL"
+    #default: "https://mapsfreemium.zimperium.com"
   client_env: # REPLACE: Zimperium Environment Name
-    required: true
+    required: false
     description: "Zimperium Console Client Environment Mnemonic"
     #default: "$CLIENT_ENV"
   client_id: # REPLACE: Zimperium Client ID
