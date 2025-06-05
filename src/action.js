@@ -62,23 +62,18 @@ function loginHttpRequest() {
     });
 }
 
-function getMatchingFiles(pattern) {
-    return new Promise((resolve, reject) => {
-        glob(pattern, (err, files) => {
-            if (err) {
-                reject(err);
-                return;
-            }
-            
-            if (files.length > MAX_FILES) {
-                const error = new Error(`Pattern matched ${files.length} files, which exceeds the maximum limit of ${MAX_FILES}. Please narrow down your pattern.`);
-                reject(error);
-                return;
-            }
-            
-            resolve(files);
-        });
-    });
+async function getMatchingFiles(pattern) {
+    try {
+        const files = await glob.glob(pattern);
+        
+        if (files.length > MAX_FILES) {
+            throw new Error(`Pattern matched ${files.length} files, which exceeds the maximum limit of ${MAX_FILES}. Please narrow down your pattern.`);
+        }
+        
+        return files;
+    } catch (err) {
+        throw err;
+    }
 }
 
 async function uploadApp() {

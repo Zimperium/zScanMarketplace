@@ -43998,9 +43998,9 @@ const action_FormData = __nccwpck_require__(6454);
 
 const clientEnv = core.getInput('client_env', { required: false });
 const consoleUrl = core.getInput('console_url', { required: false });
-const clientId = core.getInput('client_id', { required: false });
-const clientSecret = core.getInput('client_secret', { required: false });
-const clientApp = core.getInput('app_file', { required: false });
+const clientId = core.getInput('client_id', { required: true });
+const clientSecret = core.getInput('client_secret', { required: true });
+const clientApp = core.getInput('app_file', { required: true });
 
 const DOWNLOAD_POLL_TIME = 6/*seconds*/ * 1000/*ms*/;
 const STATUS_POLL_TIME = 30/*seconds*/ * 1000/*ms*/;
@@ -44008,7 +44008,7 @@ const MAX_POLL_TIME = 45/*minutes*/ * 60/*seconds*/ * 1000/*ms*/;
 const MAX_DOWNLOAD_TIME = 20/*minutes*/ * 60/*seconds*/ * 1000/*ms*/;
 const MAX_FILES = 5; // Maximum number of files to process
 const ERROR_MESSAGE_403 = "********************\n" +
-    "The action failed due to incorrect credentials or trial license expiry. Please try again.\n" +
+    "The action failed due to incorrect credentials or trial license expiration. Please try again.\n" +
     "If your 30-day trial period has ended, please email us at info@zimperium.com with your details to obtain a paid license.\n" +
     "********************\n";
 
@@ -44053,23 +44053,18 @@ function loginHttpRequest() {
     });
 }
 
-function getMatchingFiles(pattern) {
-    return new Promise((resolve, reject) => {
-        glob(pattern, (err, files) => {
-            if (err) {
-                reject(err);
-                return;
-            }
-            
-            if (files.length > MAX_FILES) {
-                const error = new Error(`Pattern matched ${files.length} files, which exceeds the maximum limit of ${MAX_FILES}. Please narrow down your pattern.`);
-                reject(error);
-                return;
-            }
-            
-            resolve(files);
-        });
-    });
+async function getMatchingFiles(pattern) {
+    try {
+        const files = await glob.glob(pattern);
+        
+        if (files.length > MAX_FILES) {
+            throw new Error(`Pattern matched ${files.length} files, which exceeds the maximum limit of ${MAX_FILES}. Please narrow down your pattern.`);
+        }
+        
+        return files;
+    } catch (err) {
+        throw err;
+    }
 }
 
 async function uploadApp() {
