@@ -15,18 +15,18 @@ The zimperium-zscan action scans your mobile app binary (ios or android) and ide
 ## Example Workflow
 
      - name: Run Zimperium zScan
-            uses: zimperium/zscanmarketplace@v1.2
+            uses: zimperium/zscanmarketplace@v1.3
             timeout-minutes: 60
             with:
               console_url: https://mapsfreemium.zimperium.com
               client_id: <Paste CLIENT_ID here or use a GitHub variable>
               client_secret: ${{ secrets.ZSCAN_CLIENT_SECRET }}
-              app_file: ./InsecureBankv2.apk
+              app_file: ./Sample_Insecure_Bank_App.apk
 
           - name: Upload SARIF file
-            uses: github/codeql-action/upload-sarif@v2
+            uses: github/codeql-action/upload-sarif@v3
             with:  
-              sarif_file: Zimperium.sarif
+              sarif_file: Sample_Insecure_Bank_App_zscan.sarif
 
 ## GitHub Prerequisites
 
@@ -105,8 +105,7 @@ The secret is being added so that you can use it in the zScan workflow next. Fol
 11. Upload the app you want to scan and change the value of the app_file variable.
     - Upload the app you want to scan to your main repo folder.
     - Next you need to change the value of the "app_file" variable to indicate the app name and its location in the repo.
-    - If the app file is the main repository folder then you can change the value to `app_file: ./<appfilename>`. Example "app_file: ./MyBank.apk”.  Else update the location accordingly.
-    - If you want to use the default "app_file: ./InsecureBankv2.apk", then download the InsecureBankv2 app [here](https://github.com/dineshshetty/Android-InsecureBankv2/releases/download/2.3.1/InsecureBankv2.apk) and upload it into your repo.
+    - This parameter accepts wildcards; however, the wildcard pattern should not match more than 5 files.
 12. Click “Commit changes” and choose “Commit directly to the main branch.” and commit the changes.
 13. Committing the changes automatically runs the zScan action.
 
@@ -126,7 +125,7 @@ File [issues](https://github.com/Zimperium/zScanMarketplace/issues) for missing 
 
 ## Ready To Purchase zScan
 
-Click [here](https://get.zimperium.com/purchase-zscan/) to start the process and get some promotional pricing.
+[Start](https://get.zimperium.com/purchase-zscan/) the process and get some promotional pricing.
 
 ## License
 

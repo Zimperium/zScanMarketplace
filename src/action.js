@@ -1,19 +1,23 @@
-const unirest = require('unirest');
+const axios = require('axios');
 const core = require('@actions/core');
 const fs = require('fs');
+const glob = require('glob');
+const path = require('path');
+const FormData = require('form-data');
 
 const clientEnv = core.getInput('client_env', { required: false });
 const consoleUrl = core.getInput('console_url', { required: false });
-const clientId = core.getInput('client_id', { required: false });
-const clientSecret = core.getInput('client_secret', { required: false });
-const clientApp = core.getInput('app_file', { required: false });
+const clientId = core.getInput('client_id', { required: true });
+const clientSecret = core.getInput('client_secret', { required: true });
+const clientApp = core.getInput('app_file', { required: true });
 
 const DOWNLOAD_POLL_TIME = 6/*seconds*/ * 1000/*ms*/;
 const STATUS_POLL_TIME = 30/*seconds*/ * 1000/*ms*/;
 const MAX_POLL_TIME = 45/*minutes*/ * 60/*seconds*/ * 1000/*ms*/;
 const MAX_DOWNLOAD_TIME = 20/*minutes*/ * 60/*seconds*/ * 1000/*ms*/;
+const MAX_FILES = 5; // Maximum number of files to process
 const ERROR_MESSAGE_403 = "********************\n" +
-    "The action failed due to incorrect credentials or trial license expiry. Please try again.\n" +
+    "The action failed due to incorrect credentials or trial license expiration. Please try again.\n" +
     "If your 30-day trial period has ended, please email us at info@zimperium.com with your details to obtain a paid license.\n" +
     "********************\n";
 
@@ -25,10 +29,10 @@ if (baseUrl.endsWith('/')) {
 core.debug(`Base URL: ${baseUrl}`);
 
 function loginHttpRequest() {
-    return new Promise(function (resolve, reject) {
+    return new Promise(async function (resolve, reject) {
         let expired = true;
         if(loginResponse != undefined) {
-            let claims = JSON.parse(new Buffer.from(loginResponse.accessToken.split('.')[1], 'base64'));
+            let claims = JSON.parse(Buffer.from(loginResponse.accessToken.split('.')[1], 'base64'));
             if (Date.now() < claims.exp * 1000) {
                 expired = false;
                 resolve(loginResponse);
@@ -38,62 +42,98 @@ function loginHttpRequest() {
         if (expired) {
             const url = `${baseUrl}/api/auth/v1/api_keys/login`;
             core.debug(`Authenticating with ${url}`);
-            const clientInfo = JSON.stringify({"clientId": clientId, "secret": clientSecret});
-            unirest('POST', url)
-                .headers({
-                    'Content-Type': 'application/json'
-                })
-                .send(clientInfo)
-                .end(function (res) {
-                    if (res.error) {
-                        if( res.statusCode == 403 ) {
-                            core.info(ERROR_MESSAGE_403);
-                        }
-                        reject(res.error);
-                    } else {
-                        loginResponse = JSON.parse(res.raw_body);
-                        core.info("Authentication successful");
-                        resolve(loginResponse);
+            const clientInfo = {"clientId": clientId, "secret": clientSecret};
+            try {
+                const response = await axios.post(url, clientInfo, {
+                    headers: {
+                        'Content-Type': 'application/json'
                     }
                 });
+                loginResponse = response.data;
+                core.info("Authentication successful");
+                resolve(loginResponse);
+            } catch (error) {
+                if (error.response && error.response.status === 403) {
+                    core.info(ERROR_MESSAGE_403);
+                }
+                reject(error);
+            }
         }
+    });
+}
+
+function getMatchingFiles(pattern) {
+    return new Promise((resolve, reject) => {
+        glob(pattern, (err, files) => {
+            if (err) {
+                reject(err);
+                return;
+            }
+            
+            if (files.length > MAX_FILES) {
+                const error = new Error(`Pattern matched ${files.length} files, which exceeds the maximum limit of ${MAX_FILES}. Please narrow down your pattern.`);
+                reject(error);
+                return;
+            }
+            
+            resolve(files);
+        });
     });
 }
 
 async function uploadApp() {
     const loginResponse = await loginHttpRequest();
-    return new Promise(function (resolve, reject) {
-        core.info("Uploading App to Zimperium zScan server")
-        const url = `${baseUrl}/api/zdev-upload/public/v1/uploads/build`
-        unirest('POST', url )
-            .headers({'Content-Type': 'multipart/form-data', 'Authorization': 'Bearer ' + loginResponse.accessToken})
-            .attach('buildFile', clientApp)
-            .field('notifyUploader', 'false')
-            .end(function (res) {
-                if (res.error) {
-                    reject(res.error);
-                } else {
-                    core.info("App upload successful")
-                    resolve(JSON.parse(res.raw_body));
-                }
-            });
-    });
+    
+    try {
+        const matchingFiles = await getMatchingFiles(clientApp);
+        
+        if (matchingFiles.length === 0) {
+            throw new Error(`No files found matching pattern: ${clientApp}`);
+        }
+        
+        const results = [];
+        for (const file of matchingFiles) {
+            core.info(`Uploading file: ${file}`);
+            const formData = new FormData();
+            formData.append('buildFile', fs.createReadStream(file));
+            formData.append('notifyUploader', 'false');
+
+            try {
+                const response = await axios.post(`${baseUrl}/api/zdev-upload/public/v1/uploads/build`, formData, {
+                    headers: {
+                        ...formData.getHeaders(),
+                        'Authorization': 'Bearer ' + loginResponse.accessToken
+                    }
+                });
+                core.info(`Upload successful for ${file}`);
+                const result = response.data;
+                result.originalFileName = file;
+                results.push(result);
+            } catch (error) {
+                throw error;
+            }
+        }
+        
+        return results;
+    } catch (error) {
+        core.error(error.message);
+        throw error;
+    }
 }
 
 async function statusHttpRequest(buildId) {
-    const loginResponse = await loginHttpRequest()
-    return new Promise(function (resolve, reject) {
-        const url = `${baseUrl}/api/zdev-app/public/v1/assessments/status?buildId=${buildId}`
-        unirest('GET', url)
-            .headers({'Authorization': 'Bearer ' + loginResponse.accessToken})
-            .end(function (res) {
-                if (res.error) { //The service is returning 500's even though it is still working
-                    resolve({zdevMetadata: {analysis: res.error.status}})
-                } else {
-                    resolve(JSON.parse(res.raw_body));
-                }
-            });
-    });
+    const loginResponse = await loginHttpRequest();
+    try {
+        const response = await axios.get(`${baseUrl}/api/zdev-app/public/v1/assessments/status?buildId=${buildId}`, {
+            headers: {
+                'Authorization': 'Bearer ' + loginResponse.accessToken
+            }
+        });
+        return response.data;
+    } catch (error) {
+        // The service is returning 500's even though it is still working
+        return {zdevMetadata: {analysis: error.response?.status}};
+    }
 }
 
 async function pollStatus(buildId) {
@@ -117,35 +157,39 @@ async function pollStatus(buildId) {
     }
 }
 
-async function downloadApp(appId) {
-    const loginResponse = await loginHttpRequest()
-    return new Promise(function (resolve, reject) {
-        let url = `${baseUrl}/api/zdev-app/public/v1/assessments/${appId}/sarif`
-        unirest('GET', url)
-            .headers({'Authorization': 'Bearer ' + loginResponse.accessToken})
-            .end(function (res) {
-                if(res.error && res.statusCode === 404) {
-                    resolve(res.statusCode)
-                } else if (res.error) {
-                    throw new Error(res.error);
-                } else {
-                    fs.writeFileSync('Zimperium.sarif', Buffer.from(res.raw_body));
-                    resolve(res.statusCode); //should be 200?
-                }
-            });
-    });
+async function downloadApp(appId, originalFileName) {
+    const loginResponse = await loginHttpRequest();
+    try {
+        const response = await axios.get(`${baseUrl}/api/zdev-app/public/v1/assessments/${appId}/sarif`, {
+            headers: {
+                'Authorization': 'Bearer ' + loginResponse.accessToken
+            },
+            responseType: 'arraybuffer'
+        });
+        
+        // Generate unique report filename based on original file
+        const baseName = path.basename(originalFileName, path.extname(originalFileName));
+        const reportFileName = `${baseName}_zscan.sarif`;
+        fs.writeFileSync(reportFileName, Buffer.from(response.data));
+        return {statusCode: response.status, reportFileName};
+    } catch (error) {
+        if (error.response && error.response.status === 404) {
+            return {statusCode: 404};
+        }
+        throw error;
+    }
 }
 
-async function pollDownload(appId) {
+async function pollDownload(appId, originalFileName) {
     await sleep(DOWNLOAD_POLL_TIME);
     let done = false;
     let totalTime = 0;
     while(!done && totalTime < MAX_DOWNLOAD_TIME) {
-        let status = await downloadApp(appId);
-        if(status == 200) {
-            core.info('Sarif file download complete.');
+        let result = await downloadApp(appId, originalFileName);
+        if(result.statusCode == 200) {
+            core.info(`Sarif file ${result.reportFileName} download complete.`);
             done = true;
-            return status;
+            return result;
         } else {
             core.info('Sarif file download is not ready, waiting to try again.');
             totalTime += DOWNLOAD_POLL_TIME;
@@ -164,19 +208,36 @@ core.debug(`id ${clientId}`);
 core.debug(`secret ` + clientSecret.slice(0, 10) + `...`);
 core.debug(`app: ${clientApp}`);
 
-uploadApp().then(uploadResult => {
-    pollStatus(uploadResult.buildId).then(statusResult => {
-        if( statusResult.zdevMetadata.analysis !== 'Failed' ) {
-            pollDownload(statusResult.id).then(downloadResult => {
-                core.info('Zimperium zScan Marketplace Action Finished');
-                fs.stat('Zimperium.sarif', (err, stats) => {
-                    if (err) {
-                        core.error(`ERROR: Assessment results file was not successfully created.`);
-                    } else {
-                        core.info('Assessment results file successfully generated.');
-                    }
-                });
-            });
+uploadApp().then(uploadResults => {
+    const promises = uploadResults.map(result => 
+        pollStatus(result.buildId).then(statusResult => {
+            if (statusResult.zdevMetadata.analysis !== 'Failed') {
+                return pollDownload(statusResult.id, result.originalFileName);
+            }
+        })
+    );
+    
+    Promise.all(promises).then((downloadResults) => {
+        core.info('Zimperium zScan Marketplace Action Finished');
+        
+        // Check all generated report files
+        const reportFiles = downloadResults.filter(r => r && r.reportFileName).map(r => r.reportFileName);
+        let allSuccessful = true;
+        
+        for (const reportFile of reportFiles) {
+            try {
+                fs.statSync(reportFile);
+                core.info(`Assessment results file ${reportFile} successfully generated.`);
+            } catch (err) {
+                core.error(`ERROR: Assessment results file ${reportFile} was not successfully created.`);
+                allSuccessful = false;
+            }
+        }
+        
+        if (!allSuccessful) {
+            core.setFailed('One or more assessment result files were not successfully created.');
         }
     });
+}).catch(error => {
+    core.setFailed(error.message);
 });
