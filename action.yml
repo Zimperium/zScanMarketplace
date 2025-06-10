@@ -25,7 +25,7 @@ inputs:
     #default: "${{ steps.apk-path.outputs.path }}"
 
 runs:
-  using: 'node16'
+  using: 'node20'
   main: 'dist/index.js'
 branding:
   icon: alert-octagon
