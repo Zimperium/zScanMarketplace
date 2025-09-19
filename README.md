@@ -14,30 +14,28 @@ The zimperium-zscan action scans your mobile app binary (ios or android) and ide
 
 ## Example Workflow
 
-     - name: Run Zimperium zScan
-            uses: zimperium/zscanmarketplace@v1.3
-            timeout-minutes: 60
-            with:
-              console_url: https://mapsfreemium.zimperium.com
-              client_id: <Paste CLIENT_ID here or use a GitHub variable>
-              client_secret: ${{ secrets.ZSCAN_CLIENT_SECRET }}
-              app_file: ./Sample_Insecure_Bank_App.apk
+    - name: Run Zimperium zScan
+        uses: zimperium/zscanmarketplace@v1.3
+        timeout-minutes: 60
+        with:
+            console_url: https://zc202.zimperium.com
+            client_id: <Paste CLIENT_ID here or use a GitHub variable>
+            client_secret: ${{ secrets.ZSCAN_CLIENT_SECRET }}
+            app_file: ./Sample_Insecure_Bank_App.apk
 
-          - name: Upload SARIF file
-            uses: github/codeql-action/upload-sarif@v3
-            with:  
-              sarif_file: Sample_Insecure_Bank_App_zscan.sarif
+        - name: Upload SARIF file
+        uses: github/codeql-action/upload-sarif@v3
+        with:  
+            sarif_file: Sample_Insecure_Bank_App_zscan.sarif
 
 ## GitHub Prerequisites
 
-- If you use an Enterprise GitHub account, you need a GitHub Advanced Security (GHAS) license to import zScan results into your repository's Security Dashboard.
+- If you use an Enterprise GitHub account, you need a GitHub Advanced Security (GHAS) license to import zScan results into your repository's Security Dashboard.  Alternatively, you can skip uploading the SARIF file.
 - If you use a Public repository, GHAS, and Code Scanning are already enabled by default.
 
 ## Get Started
 
 ### Step 1 - Get API Keys
-
-#### If you are an existing Zimperium zScan Customer
 
     1. Log in to the zConsole user interface zScan platform.
     2. Click the Account Management gear icon.
@@ -47,23 +45,6 @@ The zimperium-zscan action scans your mobile app binary (ios or android) and ide
     6. Click the Save API Access button.
     7. Click the copy icons and store both the client ID (CLIENT_ID) and the client secret (ZSCAN_CLIENT_SECRET) values.
     8. Click Close.​
-
-#### If you want to enroll in our 30 Day FREE TRIAL
-
-    1. Registration - Please fill out this [form](https://www.zimperium.com/github-action-zscan/) to register for the free trial.
-    2. Post Registration 
-        - **Console URL** - Use `https://mapsfreemium.zimperium.com`
-        - **API Secret Key** - Once you submit the registration form, an API Key will be immediately displayed. This is your ZSCAN_CLIENT_SECRET. PLEASE SAVE THIS KEY.
-        - **API CLIENT ID** - A second key will be sent to the email address you provided during registration. This is your CLIENT_ID.
-To set up the action, you need both keys.
-
-#### If I misplace or forget my keys, what should I do?
-
-    Resubmit the registration form with the same email address. This will not restart the trial, but it will provide you with new trial keys.
-      
-#### If I need assistance, what should I do?
-
-    Send an email to zscanGithubTrial-support@zimperium.com with the details. The subject of the email should be "GitHub zScan Action Free Trial".
 
 ### Step 2 - Enable GHAS in GitHub (Enterprise GitHub accounts only)
 
@@ -86,6 +67,8 @@ The secret is being added so that you can use it in the zScan workflow next. Fol
 4. Enter the API Secret Key you obtained from Step 1
 5. Click "Add secret".
 
+For more information, see [GitHub Documentation](https://docs.github.com/en/actions/concepts/workflows-and-actions/variables).  You can also use a variable for the Client ID, if you prefer.
+
 ### Step 4 - Add and Configure zSCAN Workflow in GitHub
 
 1. Click the "Security" tab in your repository (GHAS must be enabled).
@@ -96,18 +79,14 @@ The secret is being added so that you can use it in the zScan workflow next. Fol
 6. The zScan action is displayed. Click the “Configure” button.
 7. The zScan.yml file will automatically be opened.
 8. Click the Edit button and make the following changes in the zscan.yml file.
-9. Change the value for console_url.
-    - If you are a FREE TRIAL USER, then make sure the line reads `console_url:  https://mapsfreemium.zimperium.com`.
-    - If you are a zScan customer, please review the zScan user guide for the right value.
-    - Please Note: The two spaces after “:” are MANDATORY.
-10. Change the value for client_id.
-    - Where it says `client_id: CNm4gbdCRIyIkv-yjUZ0_K`, replace “CNm4gbdCRIyIkv-yjUZ0_K” with the CLIENT_ID from Step 1.
-11. Upload the app you want to scan and change the value of the app_file variable.
-    - Upload the app you want to scan to your main repo folder.
-    - Next you need to change the value of the "app_file" variable to indicate the app name and its location in the repo.
+9. Change the value for console_url to the host portion of your console URL, e.g., <https://zc202.zimperium.com>.
+10. Upload the app you want to scan and change the value of the app_file variable.
+
+    - You need to change the value of the "app_file" variable to indicate the app name and its location in the workspace, e.g., the output folder.
     - This parameter accepts wildcards; however, the wildcard pattern should not match more than 5 files.
-12. Click “Commit changes” and choose “Commit directly to the main branch.” and commit the changes.
-13. Committing the changes automatically runs the zScan action.
+
+11. Click “Commit changes” and “Commit directly to the main branch” or create/approve/merge a Pull Request.
+12. Committing the changes automatically runs the zScan action.
 
 ### Step 5 - View app scan results in GitHub
 
@@ -117,17 +96,38 @@ The secret is being added so that you can use it in the zScan workflow next. Fol
 ## Adding zScan to an existing workflow
 
 ​You must run the action on an ubuntu-latest GitHub Action runner for an existing workflow.  ​If you do not yet have a workflow, you can add a new file called zscan.yml in your .github/workflows folder.
-​Review the example at [this location](https://github.com/Zimperium/zScanMarketplace/tree/master/workflows).
+​Review the provided [example](https://github.com/Zimperium/zScanMarketplace/tree/master/workflows).
 
 ## If You Run Into Issues
 
 File [issues](https://github.com/Zimperium/zScanMarketplace/issues) for missing content or errors. Explain what you think is missing and give a suggestion as to where it could be added.
 
-## Ready To Purchase zScan
-
-[Start](https://get.zimperium.com/purchase-zscan/) the process and get some promotional pricing.
-
 ## License
 
-This project is released under the [MIT License](https://github.com/Zimperium/zScanMarketplace/blob/master/LICENSE).
-Zimperium zScan Platform, used in this action, has separate [Terms and Conditions](https://www.zimperium.com/zimperium-eula/) and requires a valid license to function.
+This script is licensed under the MIT License. By using this plugin, you agree to the following terms:
+
+    ```text
+    MIT License
+
+    Permission is hereby granted, free of charge, to any person obtaining a copy
+    of this software and associated documentation files (the "Software"), to deal
+    in the Software without restriction, including without limitation the rights
+    to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+    copies of the Software, and to permit persons to whom the Software is
+    furnished to do so, subject to the following conditions:
+
+    The above copyright notice and this permission notice shall be included in all
+    copies or substantial portions of the Software.
+
+    THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+    IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+    FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+    AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+    LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+    OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+    SOFTWARE.
+    ```
+
+## Enhancements
+
+Submitting improvements to the plugin is welcomed and all pull requests will be approved by Zimperium after review.
