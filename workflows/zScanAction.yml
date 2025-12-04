@@ -55,7 +55,7 @@ jobs:
           app_file: ./Sample_Insecure_Bank_App.apk
 
       - name: Upload SARIF file
-        uses: github/codeql-action/upload-sarif@v3
+        uses: github/codeql-action/upload-sarif@v4
         with:  
           sarif_file: Sample_Insecure_Bank_App_zscan.sarif
   

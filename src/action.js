@@ -17,8 +17,7 @@ const MAX_POLL_TIME = 45/*minutes*/ * 60/*seconds*/ * 1000/*ms*/;
 const MAX_DOWNLOAD_TIME = 20/*minutes*/ * 60/*seconds*/ * 1000/*ms*/;
 const MAX_FILES = 5; // Maximum number of files to process
 const ERROR_MESSAGE_403 = "********************\n" +
-    "The action failed due to incorrect credentials or trial license expiration. Please try again.\n" +
-    "If your 30-day trial period has ended, please email us at info@zimperium.com with your details to obtain a paid license.\n" +
+    "HTTP 403: The action failed due to incorrect credentials. Please update try again.\n" +
     "********************\n";
 
 let loginResponse = undefined;
@@ -29,6 +28,7 @@ if (baseUrl.endsWith('/')) {
 core.debug(`Base URL: ${baseUrl}`);
 
 function loginHttpRequest() {
+    core.debug('Entering loginHttpRequest');
     return new Promise(async function (resolve, reject) {
         let expired = true;
         if(loginResponse != undefined) {
@@ -40,6 +40,7 @@ function loginHttpRequest() {
         }
 
         if (expired) {
+            core.debug('Access token expired or not present, performing login request');
             const url = `${baseUrl}/api/auth/v1/api_keys/login`;
             core.debug(`Authenticating with ${url}`);
             const clientInfo = {"clientId": clientId, "secret": clientSecret};
@@ -53,6 +54,7 @@ function loginHttpRequest() {
                 core.info("Authentication successful");
                 resolve(loginResponse);
             } catch (error) {
+                core.error('Error during authentication request: ' + error.toString);
                 if (error.response && error.response.status === 403) {
                     core.info(ERROR_MESSAGE_403);
                 }
@@ -65,7 +67,7 @@ function loginHttpRequest() {
 async function getMatchingFiles(pattern) {
     try {
         const files = await glob.glob(pattern);
-        
+        core.debug(`Files matching pattern "${pattern}": ${files.join(', ')}`);
         if (files.length > MAX_FILES) {
             throw new Error(`Pattern matched ${files.length} files, which exceeds the maximum limit of ${MAX_FILES}. Please narrow down your pattern.`);
         }
@@ -78,7 +80,7 @@ async function getMatchingFiles(pattern) {
 
 async function uploadApp() {
     const loginResponse = await loginHttpRequest();
-    
+    core.debug('Entering uploadApp');
     try {
         const matchingFiles = await getMatchingFiles(clientApp);
         
@@ -117,6 +119,7 @@ async function uploadApp() {
 }
 
 async function statusHttpRequest(buildId) {
+    core.debug('Entering statusHttpRequest for buildId: ' + buildId);
     const loginResponse = await loginHttpRequest();
     try {
         const response = await axios.get(`${baseUrl}/api/zdev-app/public/v1/assessments/status?buildId=${buildId}`, {
@@ -124,8 +127,10 @@ async function statusHttpRequest(buildId) {
                 'Authorization': 'Bearer ' + loginResponse.accessToken
             }
         });
+        core.debug('Status response received: ' + response.status);
         return response.data;
     } catch (error) {
+        core.debug('Error during status request: ' + error.toString);
         // The service is returning 500's even though it is still working
         return {zdevMetadata: {analysis: error.response?.status}};
     }
@@ -135,12 +140,13 @@ async function pollStatus(buildId) {
     await sleep(STATUS_POLL_TIME);
     let done = false;
     let totalTime = 0;
+    let status = null;
+    core.debug('Entering pollStatus for buildId: ' + buildId);
     while(!done && totalTime < MAX_POLL_TIME) {
-        let status = await statusHttpRequest(buildId);
+        status = await statusHttpRequest(buildId);
         if(status.zdevMetadata.analysis === 'Done' || status.zdevMetadata.analysis === 'Failed' ) {
             core.info(`App zScan Finished - final status: ${status.zdevMetadata.analysis}`);
             done = true;
-            return status;
         } else {
             core.info(`${new Date().toISOString()} - App zScan status is ${status.zdevMetadata.analysis}`);
             totalTime += STATUS_POLL_TIME;
@@ -148,11 +154,14 @@ async function pollStatus(buildId) {
         }
     }
     if( totalTime >= MAX_POLL_TIME ) {
-        core.error( 'Max waiting time has been exceeded.' );
+        core.info( 'Max waiting time has been exceeded.' );
     }
+
+    return status;
 }
 
 async function downloadApp(appId, originalFileName) {
+    core.debug('Entering downloadApp for file: ' + originalFileName);
     const loginResponse = await loginHttpRequest();
     try {
         const response = await axios.get(`${baseUrl}/api/zdev-app/public/v1/assessments/${appId}/sarif`, {
@@ -177,6 +186,7 @@ async function downloadApp(appId, originalFileName) {
 
 async function pollDownload(appId, originalFileName) {
     await sleep(DOWNLOAD_POLL_TIME);
+    core.debug('Entering pollDownload for file: ' + originalFileName);
     let done = false;
     let totalTime = 0;
     while(!done && totalTime < MAX_DOWNLOAD_TIME) {
@@ -206,6 +216,7 @@ core.debug(`app: ${clientApp}`);
 uploadApp().then(uploadResults => {
     const promises = uploadResults.map(result => 
         pollStatus(result.buildId).then(statusResult => {
+            core.debug(`Assessment status for buildId ${result.buildId}: ${statusResult.zdevMetadata.analysis}`);
             if (statusResult.zdevMetadata.analysis !== 'Failed') {
                 return pollDownload(statusResult.id, result.originalFileName);
             }
@@ -216,10 +227,12 @@ uploadApp().then(uploadResults => {
         core.info('Zimperium zScan Marketplace Action Finished');
         
         // Check all generated report files
+        core.debug('Verifying generated report files');
         const reportFiles = downloadResults.filter(r => r && r.reportFileName).map(r => r.reportFileName);
         let allSuccessful = true;
         
         for (const reportFile of reportFiles) {
+            core.debug(`Checking existence of report file: ${reportFile}`);
             try {
                 fs.statSync(reportFile);
                 core.info(`Assessment results file ${reportFile} successfully generated.`);
