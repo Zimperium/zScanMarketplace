@@ -44588,16 +44588,16 @@ async function pollStatus(buildId) {
     while(!done && totalTime < MAX_POLL_TIME) {
         status = await statusHttpRequest(buildId);
         if(status.zdevMetadata.analysis === 'Done' || status.zdevMetadata.analysis === 'Failed' ) {
-            core.info(`App zScan Finished - final status: ${status.zdevMetadata.analysis}`);
+            core.info('zScan finished for buildId ' + buildId + ' - final status: ${status.zdevMetadata.analysis}');
             done = true;
         } else {
-            core.info(`${new Date().toISOString()} - App zScan status is ${status.zdevMetadata.analysis}`);
+            core.info(`${new Date().toISOString()} - zScan status for buildId ` + buildId + ` is ${status.zdevMetadata.analysis}`);
             totalTime += STATUS_POLL_TIME;
             await sleep(STATUS_POLL_TIME);
         }
     }
     if( totalTime >= MAX_POLL_TIME ) {
-        core.info( 'Max waiting time has been exceeded.' );
+        core.info( 'Max waiting time has been exceeded for buildId ' + buildId + '.' );
     }
 
     return status;
@@ -44659,10 +44659,13 @@ core.debug(`app: ${clientApp}`);
 uploadApp().then(uploadResults => {
     const promises = uploadResults.map(result => 
         pollStatus(result.buildId).then(statusResult => {
-            core.debug(`Assessment status for buildId ${result.buildId}: ${statusResult.zdevMetadata.analysis}`);
-            if (statusResult.zdevMetadata.analysis !== 'Failed') {
-                return pollDownload(statusResult.id, result.originalFileName);
+            if(statusResult) {
+                core.debug(`Assessment status for buildId ${result.buildId}: ${statusResult?.zdevMetadata.analysis}`);
+                if (statusResult.zdevMetadata.analysis !== 'Failed') {
+                    return pollDownload(statusResult.id, result.originalFileName);
+                }
             }
+            core.debug(`No valid status result for buildId ${result.buildId}, skipping download.`);
         })
     );
     
