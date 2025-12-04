@@ -102,9 +102,9 @@ async function uploadApp() {
                         'Authorization': 'Bearer ' + loginResponse.accessToken
                     }
                 });
-                core.info(`Upload successful for ${file}`);
                 const result = response.data;
                 result.originalFileName = file;
+                core.info(`Upload successful for ${file}; buildId: ${result.buildId}`);
                 results.push(result);
             } catch (error) {
                 throw error;
