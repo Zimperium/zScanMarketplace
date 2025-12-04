@@ -44456,7 +44456,7 @@ const clientApp = core.getInput('app_file', { required: true });
 
 const DOWNLOAD_POLL_TIME = 6/*seconds*/ * 1000/*ms*/;
 const STATUS_POLL_TIME = 30/*seconds*/ * 1000/*ms*/;
-const MAX_POLL_TIME = 45/*minutes*/ * 60/*seconds*/ * 1000/*ms*/;
+const MAX_POLL_TIME = 30/*minutes*/ * 60/*seconds*/ * 1000/*ms*/;
 const MAX_DOWNLOAD_TIME = 20/*minutes*/ * 60/*seconds*/ * 1000/*ms*/;
 const MAX_FILES = 5; // Maximum number of files to process
 const ERROR_MESSAGE_403 = "********************\n" +
@@ -44545,9 +44545,9 @@ async function uploadApp() {
                         'Authorization': 'Bearer ' + loginResponse.accessToken
                     }
                 });
-                core.info(`Upload successful for ${file}`);
                 const result = response.data;
                 result.originalFileName = file;
+                core.info(`Upload successful for ${file}; buildId: ${result.buildId}`);
                 results.push(result);
             } catch (error) {
                 throw error;
