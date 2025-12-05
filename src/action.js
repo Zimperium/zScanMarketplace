@@ -147,6 +147,7 @@ async function pollStatus(buildId) {
         if(status.zdevMetadata.analysis === 'Done' || status.zdevMetadata.analysis === 'Failed' ) {
             core.info(`zScan finished for buildId ` + buildId + ` - final status: ${status.zdevMetadata.analysis}`);
             done = true;
+            return status;
         } else {
             core.info(`${new Date().toISOString()} - zScan status for buildId ` + buildId + ` is ${status.zdevMetadata.analysis}`);
             totalTime += STATUS_POLL_TIME;
@@ -156,8 +157,6 @@ async function pollStatus(buildId) {
     if( totalTime >= MAX_POLL_TIME ) {
         core.info( 'Max waiting time has been exceeded for buildId ' + buildId + '.' );
     }
-
-    return status;
 }
 
 async function downloadApp(appId, originalFileName) {
@@ -191,6 +190,7 @@ async function pollDownload(appId, originalFileName) {
     let totalTime = 0;
     while(!done && totalTime < MAX_DOWNLOAD_TIME) {
         let result = await downloadApp(appId, originalFileName);
+        core.debug(`Download attempt returned status code: ${result.statusCode}`);
         if(result.statusCode == 200) {
             core.info(`Sarif file ${result.reportFileName} download complete.`);
             done = true;
