@@ -44588,7 +44588,7 @@ async function pollStatus(buildId) {
     while(!done && totalTime < MAX_POLL_TIME) {
         status = await statusHttpRequest(buildId);
         if(status.zdevMetadata.analysis === 'Done' || status.zdevMetadata.analysis === 'Failed' ) {
-            core.info('zScan finished for buildId ' + buildId + ' - final status: ${status.zdevMetadata.analysis}');
+            core.info(`zScan finished for buildId ` + buildId + ` - final status: ${status.zdevMetadata.analysis}`);
             done = true;
         } else {
             core.info(`${new Date().toISOString()} - zScan status for buildId ` + buildId + ` is ${status.zdevMetadata.analysis}`);
