@@ -105,6 +105,7 @@ async function uploadApp() {
                 const result = response.data;
                 result.originalFileName = file;
                 core.info(`Upload successful for ${file}; buildId: ${result.buildId}`);
+                core.debug(`Upload response data: ${JSON.stringify(result)}`);
                 results.push(result);
             } catch (error) {
                 throw error;
