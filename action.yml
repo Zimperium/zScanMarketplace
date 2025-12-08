@@ -6,26 +6,26 @@ inputs:
   console_url: # REPLACE: Zimperium Console URL
     required: false
     description: "Zimperium Console URL"
-    #default: "https://mapsfreemium.zimperium.com"
-  client_env: # REPLACE: Zimperium Environment Name
+    #default: "${{ vars.ZSCAN_CONSOLE_URL }}"
+  client_env: # DEPRECATED: Zimperium Environment Name *IF* Console URL is not provided
     required: false
     description: "Zimperium Console Client Environment Mnemonic"
-    #default: "$CLIENT_ENV"
+    #default: "${{ vars.ZSCAN_CLIENT_ENV }}"
   client_id: # REPLACE: Zimperium Client ID
     required: true
-    description: "zScan Console ID"
-    #default: "$CLIENT_ID"
+    description: "zScan API Client ID"
+    default: "${{ vars.ZSCAN_CLIENT_ID }}"
   client_secret:
     required: true
-    description: "zScan API Secret"
+    description: "zScan API Client Secret"
     #default: " ${{ secrets.ZSCAN_CLIENT_SECRET }}"
   app_file:
     required: true
-    description: "APK or IPA File"
+    description: "APK or IPA File(s) to Scan"
     #default: "${{ steps.apk-path.outputs.path }}"
 
 runs:
-  using: 'node20'
+  using: 'node24'
   main: 'dist/index.js'
 branding:
   icon: alert-octagon

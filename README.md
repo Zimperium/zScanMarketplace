@@ -16,7 +16,7 @@ The zimperium-zscan action scans your mobile app binary (ios or android) and ide
 
     ```yaml
     - name: Run Zimperium zScan
-        uses: zimperium/zscanmarketplace@v1.3
+        uses: zimperium/zscanmarketplace@v1.4
         timeout-minutes: 60
         with:
             console_url: https://zc202.zimperium.com

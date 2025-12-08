@@ -1,6 +1,6 @@
 {
   "name": "zscanmarketplace",
-  "version": "1.3.0",
+  "version": "1.4.0",
   "description": "The `zscan-action` delivers desc1, desc2, desc3 security analysis of iOS and Android apps coded in any language.",
   "main": "index.js",
   "scripts": {
@@ -11,9 +11,20 @@
     "type": "git",
     "url": "git+https://github.com/Zimperium/zScanMarketplace.git"
   },
-  "keywords": [],
-  "author": "",
-  "license": "ISC",
+  "keywords": [
+    "zimperium",
+    "zscan",
+    "security",
+    "mobile",
+    "ios",
+    "android",
+    "github",
+    "action",
+    "github-action",
+    "devsecops"
+  ],
+  "author": "Zimperium Inc.",
+  "license": "MIT",
   "bugs": {
     "url": "https://github.com/Zimperium/zScanMarketplace/issues"
   },

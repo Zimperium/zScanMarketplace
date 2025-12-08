@@ -17,7 +17,7 @@ const MAX_POLL_TIME = 30/*minutes*/ * 60/*seconds*/ * 1000/*ms*/;
 const MAX_DOWNLOAD_TIME = 20/*minutes*/ * 60/*seconds*/ * 1000/*ms*/;
 const MAX_FILES = 5; // Maximum number of files to process
 const ERROR_MESSAGE_403 = "********************\n" +
-    "HTTP 403: The action failed due to incorrect credentials. Please update try again.\n" +
+    "Authentication Error: The action failed due to incorrect credentials. Please update and try again.\n" +
     "********************\n";
 
 let loginResponse = undefined;
