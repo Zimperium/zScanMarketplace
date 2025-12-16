@@ -13,10 +13,10 @@ const clientApp = core.getInput('app_file', { required: true });
 
 const DOWNLOAD_POLL_TIME = 6/*seconds*/ * 1000/*ms*/;
 const STATUS_POLL_TIME = 30/*seconds*/ * 1000/*ms*/;
-const MAX_POLL_TIME = 30/*minutes*/ * 60/*seconds*/ * 1000/*ms*/;
+const MAX_POLL_TIME = 45/*minutes*/ * 60/*seconds*/ * 1000/*ms*/;
 const MAX_DOWNLOAD_TIME = 20/*minutes*/ * 60/*seconds*/ * 1000/*ms*/;
 const MAX_FILES = 5; // Maximum number of files to process
-const ERROR_MESSAGE_403 = "********************\n" +
+const ERROR_MESSAGE_AUTH = "********************\n" +
     "Authentication Error: The action failed due to incorrect credentials. Please update and try again.\n" +
     "********************\n";
 
@@ -55,8 +55,8 @@ function loginHttpRequest() {
                 resolve(loginResponse);
             } catch (error) {
                 core.error('Error during authentication request: ' + error.toString);
-                if (error.response && error.response.status === 403) {
-                    core.info(ERROR_MESSAGE_403);
+                if (error.response && error.response.status === 403 || error.response && error.response.status === 401) {
+                    core.info(ERROR_MESSAGE_AUTH);
                 }
                 reject(error);
             }
