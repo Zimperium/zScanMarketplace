@@ -23,7 +23,7 @@ const ERROR_MESSAGE_403 = "********************\n" +
     "********************\n";
 
 let loginResponse = undefined;
-const baseUrl = (!consoleUrl) ? `https://${clientEnv}.zimperium.com` : consoleUrl;
+let baseUrl = (!consoleUrl) ? `https://${clientEnv}.zimperium.com` : consoleUrl;
 if (baseUrl.endsWith('/')) {
     baseUrl = baseUrl.slice(0, -1);
 }
