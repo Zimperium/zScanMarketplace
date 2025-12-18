@@ -102,14 +102,14 @@ async function uploadApp() {
                     }
                 });
                 core.info(`Upload successful for ${file}`);
-                
+
                 core.debug(`buildId: ${response.data.buildId}`);
                 core.debug(`zdevAppId: ${response.data.zdevAppId}`);
                 core.debug(`teamId: ${response.data.teamId}`);
                 core.debug(`buildUploadedAt: ${response.data.buildUploadedAt}`);
-                core.debug(`buildNumber: ${response.data.buildNumber}`);
-                core.debug(`bundleIdentifier: ${response.data.bundleIdentifier}`);
-                core.debug(`appVersion: ${response.data.appVersion}`);
+                core.debug(`buildNumber: ${response.data.zdevUploadResponse.appBuildVersion}`);
+                core.debug(`bundleIdentifier: ${response.data.zdevUploadResponse.bundleIdentifier}`);
+                core.debug(`appVersion: ${response.data.zdevUploadResponse.appVersion}`);
 
                 const result = response.data;
                 result.originalFileName = file;
@@ -162,10 +162,10 @@ async function pollStatus(buildId) {
     }
 }
 
-async function downloadApp(appId, originalFileName) {
+async function downloadApp(assessmentId, originalFileName) {
     const loginResponse = await loginHttpRequest();
     try {
-        const response = await axios.get(`${baseUrl}/api/zdev-app/public/v1/assessments/${appId}/sarif`, {
+        const response = await axios.get(`${baseUrl}/api/zdev-app/public/v1/assessments/${assessmentId}/sarif`, {
             headers: {
                 'Authorization': 'Bearer ' + loginResponse.accessToken
             },
@@ -185,12 +185,13 @@ async function downloadApp(appId, originalFileName) {
     }
 }
 
-async function pollDownload(appId, originalFileName) {
+async function pollDownload(assessmentId, originalFileName) {
     await sleep(DOWNLOAD_POLL_TIME);
     let done = false;
     let totalTime = 0;
     while(!done && totalTime < MAX_DOWNLOAD_TIME) {
-        let result = await downloadApp(appId, originalFileName);
+        let result = await downloadApp(assessmentId, originalFileName);
+        core.debug(`Download attempt returned status code: ${result.statusCode}`);
         if(result.statusCode == 200) {
             core.info(`Sarif file ${result.reportFileName} download complete.`);
             done = true;
