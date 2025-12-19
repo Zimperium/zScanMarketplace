@@ -44635,7 +44635,6 @@ async function pollDownload(assessmentId, originalFileName) {
     while(!done && totalTime < MAX_DOWNLOAD_TIME) {
         let result = await downloadApp(assessmentId, originalFileName);
         core.debug(`Download attempt returned status code: ${result.statusCode}`);
-        core.debug(`Download result: ${JSON.stringify(result)}`);
         if(result.statusCode == 200) {
             core.info(`Sarif file ${result.reportFileName} download complete.`);
             done = true;
@@ -44700,7 +44699,8 @@ uploadApp().then(uploadResults => {
                 // Check if app needs to be assigned to a team
                 if (result.teamId === null || result.teamId === undefined) {
                     core.info(`App ${result.zdevAppId} not assigned to a team, attempting to assign to team: ${teamName}`);
-                    
+                    // Wait for a short time to ensure the app is available for team assignment
+                    await sleep(STATUS_POLL_TIME);
                     try {
                         const teams = await getTeams();
                         let targetTeamId = null;
