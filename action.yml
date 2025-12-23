@@ -23,6 +23,10 @@ inputs:
     required: true
     description: "APK or IPA File"
     #default: "${{ steps.apk-path.outputs.path }}"
+  team_name:
+    required: false
+    description: "Team name to assign the app to (default: Default)"
+    default: "Default"
 
 runs:
   using: 'node20'
