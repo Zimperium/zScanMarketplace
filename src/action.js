@@ -17,9 +17,8 @@ const STATUS_POLL_TIME = 30/*seconds*/ * 1000/*ms*/;
 const MAX_POLL_TIME = 45/*minutes*/ * 60/*seconds*/ * 1000/*ms*/;
 const MAX_DOWNLOAD_TIME = 20/*minutes*/ * 60/*seconds*/ * 1000/*ms*/;
 const MAX_FILES = 5; // Maximum number of files to process
-const ERROR_MESSAGE_403 = "********************\n" +
-    "The action failed due to incorrect credentials or trial license expiration. Please try again.\n" +
-    "If your 30-day trial period has ended, please email us at info@zimperium.com with your details to obtain a paid license.\n" +
+const ERROR_MESSAGE_AUTH = "********************\n" +
+    "Authentication Error: The action failed due to incorrect credentials. Please update and try again.\n" +
     "********************\n";
 
 let loginResponse = undefined;
@@ -30,6 +29,7 @@ if (baseUrl.endsWith('/')) {
 core.debug(`Base URL: ${baseUrl}`);
 
 function loginHttpRequest() {
+    core.debug('Entering loginHttpRequest');
     return new Promise(async function (resolve, reject) {
         let expired = true;
         if(loginResponse != undefined) {
@@ -41,6 +41,7 @@ function loginHttpRequest() {
         }
 
         if (expired) {
+            core.debug('Access token expired or not present, performing login request');
             const url = `${baseUrl}/api/auth/v1/api_keys/login`;
             core.debug(`Authenticating with ${url}`);
             const clientInfo = {"clientId": clientId, "secret": clientSecret};
@@ -54,8 +55,9 @@ function loginHttpRequest() {
                 core.info("Authentication successful");
                 resolve(loginResponse);
             } catch (error) {
-                if (error.response && error.response.status === 403) {
-                    core.info(ERROR_MESSAGE_403);
+                core.error('Error during authentication request: ' + error.toString);
+                if (error.response && error.response.status === 403 || error.response && error.response.status === 401) {
+                    core.info(ERROR_MESSAGE_AUTH);
                 }
                 reject(error);
             }
@@ -66,7 +68,7 @@ function loginHttpRequest() {
 async function getMatchingFiles(pattern) {
     try {
         const files = await glob.glob(pattern);
-        
+        core.debug(`Files matching pattern "${pattern}": ${files.join(', ')}`);
         if (files.length > MAX_FILES) {
             throw new Error(`Pattern matched ${files.length} files, which exceeds the maximum limit of ${MAX_FILES}. Please narrow down your pattern.`);
         }
@@ -79,7 +81,7 @@ async function getMatchingFiles(pattern) {
 
 async function uploadApp() {
     const loginResponse = await loginHttpRequest();
-    
+    core.debug('Entering uploadApp');
     try {
         const matchingFiles = await getMatchingFiles(clientApp);
         
@@ -101,21 +103,24 @@ async function uploadApp() {
                         'Authorization': 'Bearer ' + loginResponse.accessToken
                     }
                 });
-                core.info(`Upload successful for ${file}`);
-
-                core.debug(`buildId: ${response.data.buildId}`);
-                core.debug(`zdevAppId: ${response.data.zdevAppId}`);
-                core.debug(`teamId: ${response.data.teamId}`);
-                core.debug(`buildUploadedAt: ${response.data.buildUploadedAt}`);
-                core.debug(`buildNumber: ${response.data.zdevUploadResponse.appBuildVersion}`);
-                core.debug(`bundleIdentifier: ${response.data.zdevUploadResponse.bundleIdentifier}`);
-                core.debug(`appVersion: ${response.data.zdevUploadResponse.appVersion}`);
 
                 const result = response.data;
                 result.originalFileName = file;
+                
+                core.info(`Upload successful for ${file}; buildId: ${result.buildId}`);
+                core.info(`buildId: ${result.buildId}`);
+                core.info(`zdevAppId: ${result.zdevAppId}`);
+                core.info(`teamId: ${result.teamId}`);
+                core.info(`buildUploadedAt: ${result.buildUploadedAt}`);
+                core.info(`buildNumber: ${result.zdevUploadResponse.appBuildVersion}`);
+                core.info(`bundleIdentifier: ${result.zdevUploadResponse.bundleIdentifier}`);
+                core.info(`appVersion: ${result.zdevUploadResponse.appVersion}`);
+                core.debug(`Upload response data: ${JSON.stringify(result)}`);
+
                 results.push(result);
             } catch (error) {
-                throw error;
+                core.error(`Failed to upload file ${file}: ${error.message}`);
+                continue;
             }
         }
         
@@ -127,6 +132,7 @@ async function uploadApp() {
 }
 
 async function statusHttpRequest(buildId) {
+    core.debug('Entering statusHttpRequest for buildId: ' + buildId);
     const loginResponse = await loginHttpRequest();
     try {
         const response = await axios.get(`${baseUrl}/api/zdev-app/public/v1/assessments/status?buildId=${buildId}`, {
@@ -134,8 +140,10 @@ async function statusHttpRequest(buildId) {
                 'Authorization': 'Bearer ' + loginResponse.accessToken
             }
         });
+        core.debug('Status response received: ' + response.status);
         return response.data;
     } catch (error) {
+        core.debug('Error during status request: ' + error.toString);
         // The service is returning 500's even though it is still working
         return {zdevMetadata: {analysis: error.response?.status}};
     }
@@ -145,24 +153,27 @@ async function pollStatus(buildId) {
     await sleep(STATUS_POLL_TIME);
     let done = false;
     let totalTime = 0;
+    let status = null;
+    core.debug('Entering pollStatus for buildId: ' + buildId);
     while(!done && totalTime < MAX_POLL_TIME) {
-        let status = await statusHttpRequest(buildId);
+        status = await statusHttpRequest(buildId);
         if(status.zdevMetadata.analysis === 'Done' || status.zdevMetadata.analysis === 'Failed' ) {
-            core.info(`App zScan Finished - final status: ${status.zdevMetadata.analysis}`);
+            core.info(`zScan finished for buildId ` + buildId + ` - final status: ${status.zdevMetadata.analysis}`);
             done = true;
             return status;
         } else {
-            core.info(`${new Date().toISOString()} - App zScan status is ${status.zdevMetadata.analysis}`);
+            core.info(`${new Date().toISOString()} - zScan status for buildId ` + buildId + ` is ${status.zdevMetadata.analysis}`);
             totalTime += STATUS_POLL_TIME;
             await sleep(STATUS_POLL_TIME);
         }
     }
     if( totalTime >= MAX_POLL_TIME ) {
-        core.error( 'Max waiting time has been exceeded.' );
+        core.info( 'Max waiting time has been exceeded for buildId ' + buildId + '.' );
     }
 }
 
 async function downloadApp(assessmentId, originalFileName) {
+    core.debug('Entering downloadApp for file: ' + originalFileName);
     const loginResponse = await loginHttpRequest();
     try {
         const response = await axios.get(`${baseUrl}/api/zdev-app/public/v1/assessments/${assessmentId}/sarif`, {
@@ -187,6 +198,7 @@ async function downloadApp(assessmentId, originalFileName) {
 
 async function pollDownload(assessmentId, originalFileName) {
     await sleep(DOWNLOAD_POLL_TIME);
+    core.debug('Entering pollDownload for file: ' + originalFileName);
     let done = false;
     let totalTime = 0;
     while(!done && totalTime < MAX_DOWNLOAD_TIME) {
@@ -303,6 +315,7 @@ uploadApp().then(uploadResults => {
             } catch (error) {
                 throw error;
             }
+            core.debug(`No valid status result for buildId ${result.buildId}, skipping download.`);
         })()
     );
     
@@ -310,10 +323,12 @@ uploadApp().then(uploadResults => {
         core.info('Zimperium zScan Marketplace Action Finished');
         
         // Check all generated report files
+        core.debug('Verifying generated report files');
         const reportFiles = downloadResults.filter(r => r && r.reportFileName).map(r => r.reportFileName);
         let allSuccessful = true;
         
         for (const reportFile of reportFiles) {
+            core.debug(`Checking existence of report file: ${reportFile}`);
             try {
                 fs.statSync(reportFile);
                 core.info(`Assessment results file ${reportFile} successfully generated.`);

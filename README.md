@@ -14,8 +14,9 @@ The zimperium-zscan action scans your mobile app binary (ios or android) and ide
 
 ## Example Workflow
 
+    ```yaml
     - name: Run Zimperium zScan
-        uses: zimperium/zscanmarketplace@v1.3
+        uses: zimperium/zscanmarketplace@v1.4
         timeout-minutes: 60
         with:
             console_url: https://zc202.zimperium.com
@@ -24,10 +25,11 @@ The zimperium-zscan action scans your mobile app binary (ios or android) and ide
             app_file: ./Sample_Insecure_Bank_App.apk
             team_name: Default
 
-        - name: Upload SARIF file
-        uses: github/codeql-action/upload-sarif@v3
+    - name: Upload SARIF file
+        uses: github/codeql-action/upload-sarif@v4
         with:  
             sarif_file: Sample_Insecure_Bank_App_zscan.sarif
+    ```
 
 ## GitHub Prerequisites
 
