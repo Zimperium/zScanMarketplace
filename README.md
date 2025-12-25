@@ -23,6 +23,7 @@ The zimperium-zscan action scans your mobile app binary (ios or android) and ide
             client_id: <Paste CLIENT_ID here or use a GitHub variable>
             client_secret: ${{ secrets.ZSCAN_CLIENT_SECRET }}
             app_file: ./Sample_Insecure_Bank_App.apk
+            team_name: Default
 
     - name: Upload SARIF file
         uses: github/codeql-action/upload-sarif@v4
