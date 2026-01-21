@@ -6,7 +6,7 @@ inputs:
   console_url: # REPLACE: Zimperium Console URL
     required: false
     description: "Zimperium Console URL"
-    default: "${{ vars.ZSCAN_CONSOLE_URL }}"
+    # default: "${{ vars.ZSCAN_CONSOLE_URL }}"
   client_env: # DEPRECATED: Zimperium Environment Name *IF* Console URL is not provided
     required: false
     description: "DEPRECATED: Zimperium Console Client Environment Mnemonic"
@@ -14,11 +14,11 @@ inputs:
   client_id: # REPLACE: Zimperium Client ID
     required: true
     description: "zScan API Client ID"
-    default: "${{ vars.ZSCAN_CLIENT_ID }}"
+    # default: "${{ vars.ZSCAN_CLIENT_ID }}"
   client_secret:
     required: true
     description: "zScan API Client Secret"
-    default: " ${{ secrets.ZSCAN_CLIENT_SECRET }}"
+    # default: " ${{ secrets.ZSCAN_CLIENT_SECRET }}"
   app_file:
     required: true
     description: "APK or IPA File(s) to Scan"

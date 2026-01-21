@@ -22,7 +22,7 @@ const ERROR_MESSAGE_AUTH = "********************\n" +
     "********************\n";
 
 let loginResponse = undefined;
-const baseUrl = (!consoleUrl) ? `https://${clientEnv}.zimperium.com` : consoleUrl;
+let baseUrl = (!consoleUrl) ? `https://${clientEnv}.zimperium.com` : consoleUrl;
 if (baseUrl.endsWith('/')) {
     baseUrl = baseUrl.slice(0, -1);
 }
