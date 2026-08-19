@@ -5,13 +5,6 @@ const glob = require('glob');
 const path = require('path');
 const FormData = require('form-data');
 
-const clientEnv = core.getInput('client_env', { required: false });
-const consoleUrl = core.getInput('console_url', { required: false });
-const clientId = core.getInput('client_id', { required: true });
-const clientSecret = core.getInput('client_secret', { required: true });
-const clientApp = core.getInput('app_file', { required: true });
-const teamName = core.getInput('team_name', { required: false }) || 'Default';
-
 const DOWNLOAD_POLL_TIME = 6/*seconds*/ * 1000/*ms*/;
 const STATUS_POLL_TIME = 30/*seconds*/ * 1000/*ms*/;
 const MAX_POLL_TIME = 45/*minutes*/ * 60/*seconds*/ * 1000/*ms*/;
@@ -22,21 +15,43 @@ const ERROR_MESSAGE_AUTH = "********************\n" +
     "********************\n";
 
 let loginResponse = undefined;
-let baseUrl = (!consoleUrl) ? `https://${clientEnv}.zimperium.com` : consoleUrl;
-if (baseUrl.endsWith('/')) {
-    baseUrl = baseUrl.slice(0, -1);
-}
-core.debug(`Base URL: ${baseUrl}`);
+let actionConfig = null;
 
-function loginHttpRequest() {
+function getActionConfig() {
+    if (!actionConfig) {
+        actionConfig = {
+            clientEnv: core.getInput('client_env', { required: false }),
+            consoleUrl: core.getInput('console_url', { required: false }),
+            clientId: core.getInput('client_id', { required: true }),
+            clientSecret: core.getInput('client_secret', { required: true }),
+            clientApp: core.getInput('app_file', { required: true }),
+            teamName: core.getInput('team_name', { required: false }) || 'Default'
+        };
+    }
+
+    return actionConfig;
+}
+
+function getBaseUrl(actionConfig = getActionConfig()) {
+    let baseUrl = (!actionConfig.consoleUrl) ? `https://${actionConfig.clientEnv}.zimperium.com` : actionConfig.consoleUrl;
+    if (baseUrl.endsWith('/')) {
+        baseUrl = baseUrl.slice(0, -1);
+    }
+    return baseUrl;
+}
+
+function loginHttpRequest(actionConfig = getActionConfig(), loginResponseOverride = undefined) {
+    const config = actionConfig || getActionConfig();
+    const baseUrl = getBaseUrl(config);
     core.debug('Entering loginHttpRequest');
     return new Promise(async function (resolve, reject) {
         let expired = true;
-        if(loginResponse != undefined) {
-            let claims = JSON.parse(Buffer.from(loginResponse.accessToken.split('.')[1], 'base64'));
+        const effectiveLoginResponse = loginResponseOverride !== undefined ? loginResponseOverride : loginResponse;
+        if (effectiveLoginResponse != undefined) {
+            let claims = JSON.parse(Buffer.from(effectiveLoginResponse.accessToken.split('.')[1], 'base64'));
             if (Date.now() < claims.exp * 1000) {
                 expired = false;
-                resolve(loginResponse);
+                resolve(effectiveLoginResponse);
             }
         }
 
@@ -44,7 +59,7 @@ function loginHttpRequest() {
             core.debug('Access token expired or not present, performing login request');
             const url = `${baseUrl}/api/auth/v1/api_keys/login`;
             core.debug(`Authenticating with ${url}`);
-            const clientInfo = {"clientId": clientId, "secret": clientSecret};
+            const clientInfo = {"clientId": config.clientId, "secret": config.clientSecret};
             try {
                 const response = await axios.post(url, clientInfo, {
                     headers: {
@@ -79,14 +94,15 @@ async function getMatchingFiles(pattern) {
     }
 }
 
-async function uploadApp() {
-    const loginResponse = await loginHttpRequest();
+async function uploadApp(actionConfig = getActionConfig(), loginResponseOverride = undefined) {
+    const config = actionConfig || getActionConfig();
+    const loginResponse = loginResponseOverride || await loginHttpRequest(config);
     core.debug('Entering uploadApp');
     try {
-        const matchingFiles = await getMatchingFiles(clientApp);
+        const matchingFiles = await getMatchingFiles(config.clientApp);
         
         if (matchingFiles.length === 0) {
-            throw new Error(`No files found matching pattern: ${clientApp}`);
+            throw new Error(`No files found matching pattern: ${config.clientApp}`);
         }
         
         const results = [];
@@ -97,7 +113,7 @@ async function uploadApp() {
             formData.append('notifyUploader', 'false');
 
             try {
-                const response = await axios.post(`${baseUrl}/api/zdev-upload/public/v1/uploads/build`, formData, {
+                const response = await axios.post(`${getBaseUrl(config)}/api/zdev-upload/public/v1/uploads/build`, formData, {
                     headers: {
                         ...formData.getHeaders(),
                         'Authorization': 'Bearer ' + loginResponse.accessToken
@@ -131,11 +147,12 @@ async function uploadApp() {
     }
 }
 
-async function statusHttpRequest(buildId) {
+async function statusHttpRequest(buildId, actionConfig = getActionConfig(), loginResponseOverride = undefined) {
+    const config = actionConfig || getActionConfig();
     core.debug('Entering statusHttpRequest for buildId: ' + buildId);
-    const loginResponse = await loginHttpRequest();
+    const loginResponse = loginResponseOverride || await loginHttpRequest(config);
     try {
-        const response = await axios.get(`${baseUrl}/api/zdev-app/public/v1/assessments/status?buildId=${buildId}`, {
+        const response = await axios.get(`${getBaseUrl(config)}/api/zdev-app/public/v1/assessments/status?buildId=${buildId}`, {
             headers: {
                 'Authorization': 'Bearer ' + loginResponse.accessToken
             }
@@ -172,11 +189,12 @@ async function pollStatus(buildId) {
     }
 }
 
-async function downloadApp(assessmentId, originalFileName) {
+async function downloadApp(assessmentId, originalFileName, actionConfig = getActionConfig(), loginResponseOverride = undefined) {
+    const config = actionConfig || getActionConfig();
     core.debug('Entering downloadApp for file: ' + originalFileName);
-    const loginResponse = await loginHttpRequest();
+    const loginResponse = loginResponseOverride || await loginHttpRequest(config);
     try {
-        const response = await axios.get(`${baseUrl}/api/zdev-app/public/v1/assessments/${assessmentId}/sarif`, {
+        const response = await axios.get(`${getBaseUrl(config)}/api/zdev-app/public/v1/assessments/${assessmentId}/sarif`, {
             headers: {
                 'Authorization': 'Bearer ' + loginResponse.accessToken
             },
@@ -216,10 +234,11 @@ async function pollDownload(assessmentId, originalFileName) {
     }
 }
 
-async function getTeams() {
-    const loginResponse = await loginHttpRequest();
+async function getTeams(actionConfig = getActionConfig(), loginResponseOverride = undefined) {
+    const config = actionConfig || getActionConfig();
+    const loginResponse = loginResponseOverride || await loginHttpRequest(config);
     try {
-        const response = await axios.get(`${baseUrl}/api/auth/public/v1/teams`, {
+        const response = await axios.get(`${getBaseUrl(config)}/api/auth/public/v1/teams`, {
             headers: {
                 'Authorization': 'Bearer ' + loginResponse.accessToken
             }
@@ -231,10 +250,11 @@ async function getTeams() {
     }
 }
 
-async function assignAppToTeam(appId, teamId) {
-    const loginResponse = await loginHttpRequest();
+async function assignAppToTeam(appId, teamId, actionConfig = getActionConfig(), loginResponseOverride = undefined) {
+    const config = actionConfig || getActionConfig();
+    const loginResponse = loginResponseOverride || await loginHttpRequest(config);
     try {
-        const response = await axios.put(`${baseUrl}/api/zdev-app/public/v1/apps/${appId}/upload`, 
+        const response = await axios.put(`${getBaseUrl(config)}/api/zdev-app/public/v1/apps/${appId}/upload`, 
             { "teamId": teamId },
             {
                 headers: {
@@ -255,37 +275,39 @@ function sleep(ms) {
     return new Promise(resolve => setTimeout(resolve, ms));
 }
 
-core.debug(`env ${clientEnv}`);
-core.debug(`console url ${consoleUrl}`);
-core.debug(`id ${clientId}`);
-core.debug(`secret ` + clientSecret.slice(0, 10) + `...`);
-core.debug(`app: ${clientApp}`);
+async function runAction() {
+    const config = getActionConfig();
+    core.debug(`env ${config.clientEnv}`);
+    core.debug(`console url ${config.consoleUrl}`);
+    core.debug(`id ${config.clientId}`);
+    core.debug(`secret ` + config.clientSecret.slice(0, 10) + `...`);
+    core.debug(`app: ${config.clientApp}`);
 
-uploadApp().then(uploadResults => {
+    const uploadResults = await uploadApp(config);
     const promises = uploadResults.map(result => 
         (async () => {
             try {
                 // Check if app needs to be assigned to a team
                 if (result.teamId === null || result.teamId === undefined) {
-                    core.info(`App ${result.zdevAppId} not assigned to a team, attempting to assign to team: ${teamName}`);
+                    core.info(`App ${result.zdevAppId} not assigned to a team, attempting to assign to team: ${config.teamName}`);
                     // Wait for a short time to ensure the app is available for team assignment
                     await sleep(STATUS_POLL_TIME);
                     try {
-                        const teams = await getTeams();
+                        const teams = await getTeams(config);
                         let targetTeamId = null;
                         
                         // Find the team ID matching the requested team name
                         for (const team of teams) {
-                            if (team.name === teamName) {
+                            if (team.name === config.teamName) {
                                 targetTeamId = team.id;
-                                core.info(`Found team "${teamName}" with ID: ${targetTeamId}`);
+                                core.info(`Found team "${config.teamName}" with ID: ${targetTeamId}`);
                                 break;
                             }
                         }
                         
                         // If team not found, use Default team
                         if (targetTeamId === null) {
-                            core.info(`Team "${teamName}" not found, attempting to use Default team`);
+                            core.info(`Team "${config.teamName}" not found, attempting to use Default team`);
                             for (const team of teams) {
                                 if (team.name === 'Default') {
                                     targetTeamId = team.id;
@@ -298,8 +320,8 @@ uploadApp().then(uploadResults => {
                         if (targetTeamId === null) {
                             core.error('Could not find team to assign the app to. Continuing with scan...');
                         } else {
-                            await assignAppToTeam(result.zdevAppId, targetTeamId);
-                            core.info(`App ${result.zdevAppId} successfully assigned to team ${teamName}`);
+                            await assignAppToTeam(result.zdevAppId, targetTeamId, config);
+                            core.info(`App ${result.zdevAppId} successfully assigned to team ${config.teamName}`);
                         }
                     } catch (teamAssignmentError) {
                         core.warning(`Team assignment failed: ${teamAssignmentError.message}. Continuing with scan...`);
@@ -318,30 +340,46 @@ uploadApp().then(uploadResults => {
             core.debug(`No valid status result for buildId ${result.buildId}, skipping download.`);
         })()
     );
+
+    const downloadResults = await Promise.all(promises);
+    core.info('Zimperium zScan Marketplace Action Finished');
     
-    Promise.all(promises).then((downloadResults) => {
-        core.info('Zimperium zScan Marketplace Action Finished');
-        
-        // Check all generated report files
-        core.debug('Verifying generated report files');
-        const reportFiles = downloadResults.filter(r => r && r.reportFileName).map(r => r.reportFileName);
-        let allSuccessful = true;
-        
-        for (const reportFile of reportFiles) {
-            core.debug(`Checking existence of report file: ${reportFile}`);
-            try {
-                fs.statSync(reportFile);
-                core.info(`Assessment results file ${reportFile} successfully generated.`);
-            } catch (err) {
-                core.error(`ERROR: Assessment results file ${reportFile} was not successfully created.`);
-                allSuccessful = false;
-            }
+    // Check all generated report files
+    core.debug('Verifying generated report files');
+    const reportFiles = downloadResults.filter(r => r && r.reportFileName).map(r => r.reportFileName);
+    let allSuccessful = true;
+    
+    for (const reportFile of reportFiles) {
+        core.debug(`Checking existence of report file: ${reportFile}`);
+        try {
+            fs.statSync(reportFile);
+            core.info(`Assessment results file ${reportFile} successfully generated.`);
+        } catch (err) {
+            core.error(`ERROR: Assessment results file ${reportFile} was not successfully created.`);
+            allSuccessful = false;
         }
-        
-        if (!allSuccessful) {
-            core.setFailed('One or more assessment result files were not successfully created.');
-        }
+    }
+    
+    if (!allSuccessful) {
+        core.setFailed('One or more assessment result files were not successfully created.');
+    }
+}
+
+if (require.main === module) {
+    runAction().catch(error => {
+        core.setFailed(error.message);
     });
-}).catch(error => {
-    core.setFailed(error.message);
-});
+}
+
+module.exports = {
+    getMatchingFiles,
+    loginHttpRequest,
+    uploadApp,
+    statusHttpRequest,
+    pollStatus,
+    downloadApp,
+    getTeams,
+    assignAppToTeam,
+    sleep,
+    runAction
+};
