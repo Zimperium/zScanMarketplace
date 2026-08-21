@@ -27,6 +27,22 @@ inputs:
     required: false
     description: "Team name to assign the app to (default: Default)"
     default: "Default"
+  report_format:
+    required: false
+    description: "Report format to download: json, sarif, or pdf (default: sarif)"
+    default: "sarif"
+  fail_on_scan_findings:
+    required: false
+    description: "Fail the workflow when scan findings meet the configured criteria"
+    default: "false"
+  scan_evaluation_mode:
+    required: false
+    description: "Scan evaluation mode: any_finding or unaccepted_finding_only (default: any_finding)"
+    default: "any_finding"
+  minimum_severity:
+    required: false
+    description: "Minimum severity for scan evaluation: informational, low, medium, high, or critical (default: low)"
+    default: "low"
 
 runs:
   using: 'node24'

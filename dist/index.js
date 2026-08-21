@@ -36436,6 +36436,16 @@ const ERROR_MESSAGE_AUTH = "********************\n" +
 let loginResponse = undefined;
 let actionConfig = null;
 
+const SEVERITY_RANKS = {
+    informational: 0,
+    low: 1,
+    medium: 2,
+    high: 3,
+    critical: 4,
+    'best practices': -2,
+    unknown: -1
+};
+
 function getActionConfig() {
     if (!actionConfig) {
         actionConfig = {
@@ -36444,11 +36454,62 @@ function getActionConfig() {
             clientId: core.getInput('client_id', { required: true }),
             clientSecret: core.getInput('client_secret', { required: true }),
             clientApp: core.getInput('app_file', { required: true }),
-            teamName: core.getInput('team_name', { required: false }) || 'Default'
+            teamName: core.getInput('team_name', { required: false }) || 'Default',
+            reportFormat: normalizeReportFormat(core.getInput('report_format', { required: false })),
+            failOnScanFindings: core.getBooleanInput('fail_on_scan_findings', { required: false }),
+            scanEvaluationMode: normalizeScanEvaluationMode(core.getInput('scan_evaluation_mode', { required: false })),
+            minimumSeverity: normalizeSeverity(core.getInput('minimum_severity', { required: false }) || 'low')
         };
     }
 
     return actionConfig;
+}
+
+function normalizeReportFormat(value) {
+    const format = String(value || 'sarif').trim().toLowerCase();
+    return ['json', 'sarif', 'pdf'].includes(format) ? format : 'sarif';
+}
+
+function normalizeScanEvaluationMode(value) {
+    const mode = String(value || 'any_finding').trim().toLowerCase();
+    return mode === 'unaccepted_finding_only' ? mode : 'any_finding';
+}
+
+function normalizeSeverity(value) {
+    const severity = String(value || 'unknown').trim().toLowerCase();
+    return Object.prototype.hasOwnProperty.call(SEVERITY_RANKS, severity) ? severity : 'unknown';
+}
+
+function parseFindingSeverity(finding) {
+    if (!finding || typeof finding !== 'object') {
+        return 'unknown';
+    }
+    if (typeof finding.severity === 'string') {
+        return normalizeSeverity(finding.severity);
+    }
+    if (Number.isInteger(finding.severityOrdinal)) {
+        const ordinalNames = ['informational', 'low', 'medium', 'high', 'critical', 'best practices'];
+        return ordinalNames[finding.severityOrdinal] || 'unknown';
+    }
+    return 'unknown';
+}
+
+function parseFindingAccepted(finding) {
+    return finding && finding.accepted_status === false;
+}
+
+function reportMatchesCriteria(report, mode = 'any_finding', minimumSeverity = 'low') {
+    const findings = report && Array.isArray(report.findings) ? report.findings : [];
+    const normalizedThreshold = normalizeSeverity(minimumSeverity);
+    const threshold = normalizedThreshold === 'unknown' ? 'low' : normalizedThreshold;
+    const thresholdRank = SEVERITY_RANKS[threshold];
+    return findings.some(finding => {
+        const severity = parseFindingSeverity(finding);
+        if (severity === 'best practices' || severity === 'unknown' || SEVERITY_RANKS[severity] < thresholdRank) {
+            return false;
+        }
+        return mode !== 'unaccepted_finding_only' || parseFindingAccepted(finding);
+    });
 }
 
 function getBaseUrl(actionConfig = getActionConfig()) {
@@ -36608,12 +36669,13 @@ async function pollStatus(buildId) {
     }
 }
 
-async function downloadApp(assessmentId, originalFileName, actionConfig = getActionConfig(), loginResponseOverride = undefined) {
+async function downloadApp(assessmentId, originalFileName, actionConfig = getActionConfig(), loginResponseOverride = undefined, reportFormat = 'sarif') {
     const config = actionConfig || getActionConfig();
     core.debug('Entering downloadApp for file: ' + originalFileName);
     const loginResponse = loginResponseOverride || await loginHttpRequest(config);
     try {
-        const response = await axios.get(`${getBaseUrl(config)}/api/zdev-app/public/v1/assessments/${assessmentId}/sarif`, {
+        const format = normalizeReportFormat(reportFormat);
+        const response = await axios.get(`${getBaseUrl(config)}/api/zdev-app/public/v1/assessments/${assessmentId}/${format}`, {
             headers: {
                 'Authorization': 'Bearer ' + loginResponse.accessToken
             },
@@ -36622,7 +36684,7 @@ async function downloadApp(assessmentId, originalFileName, actionConfig = getAct
         
         // Generate unique report filename based on original file
         const baseName = path.basename(originalFileName, path.extname(originalFileName));
-        const reportFileName = `${baseName}_zscan.sarif`;
+        const reportFileName = `${baseName}_zscan.${format}`;
         fs.writeFileSync(reportFileName, Buffer.from(response.data));
         return {statusCode: response.status, reportFileName};
     } catch (error) {
@@ -36633,13 +36695,13 @@ async function downloadApp(assessmentId, originalFileName, actionConfig = getAct
     }
 }
 
-async function pollDownload(assessmentId, originalFileName) {
+async function pollDownload(assessmentId, originalFileName, reportFormat = 'sarif') {
     await sleep(DOWNLOAD_POLL_TIME);
     core.debug('Entering pollDownload for file: ' + originalFileName);
     let done = false;
     let totalTime = 0;
     while(!done && totalTime < MAX_DOWNLOAD_TIME) {
-        let result = await downloadApp(assessmentId, originalFileName);
+        let result = await downloadApp(assessmentId, originalFileName, getActionConfig(), undefined, reportFormat);
         core.debug(`Download attempt returned status code: ${result.statusCode}`);
         if(result.statusCode == 200) {
             core.info(`Sarif file ${result.reportFileName} download complete.`);
@@ -36751,7 +36813,18 @@ async function runAction() {
                 
                 const statusResult = await pollStatus(result.buildId);
                 if (statusResult.zdevMetadata.analysis !== 'Failed') {
-                    return pollDownload(statusResult.id, result.originalFileName);
+                    const needsJson = config.failOnScanFindings || config.reportFormat === 'json';
+                    const jsonResult = needsJson ? await pollDownload(statusResult.id, result.originalFileName, 'json') : null;
+                    const outputResult = config.reportFormat === 'json' ? jsonResult : await pollDownload(statusResult.id, result.originalFileName, config.reportFormat);
+
+                    if (config.failOnScanFindings && jsonResult) {
+                        const report = JSON.parse(fs.readFileSync(jsonResult.reportFileName, 'utf8'));
+                        if (reportMatchesCriteria(report, config.scanEvaluationMode, config.minimumSeverity)) {
+                            core.setFailed(`Scan findings met the configured criteria for ${result.originalFileName}.`);
+                        }
+                    }
+
+                    return outputResult;
                 }
             } catch (error) {
                 throw error;
@@ -36799,6 +36872,12 @@ module.exports = {
     downloadApp,
     getTeams,
     assignAppToTeam,
+    normalizeReportFormat,
+    normalizeScanEvaluationMode,
+    normalizeSeverity,
+    parseFindingSeverity,
+    parseFindingAccepted,
+    reportMatchesCriteria,
     sleep,
     runAction
 };
