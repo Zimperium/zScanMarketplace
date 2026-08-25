@@ -12,6 +12,7 @@ const {
   normalizeScanEvaluationMode,
   parseFindingSeverity,
   parseFindingAccepted,
+  summarizeScanReport,
   reportMatchesCriteria
 } = require('../src/action');
 
@@ -96,8 +97,15 @@ test('downloadApp supports PDF reports with a format-specific filename', async (
   try {
     process.chdir(dir);
     originalGet = axios.get;
+    let requestCount = 0;
     axios.get = async (url, options) => {
-      assert.match(url, /assessments\/123\/pdf/);
+      requestCount += 1;
+      if (requestCount === 1) {
+        assert.match(url, /assessments\/123\/report/);
+        assert.equal(options.headers.Authorization, 'Bearer test-token');
+        return { data: { cdn_link: 'https://cdn.example.test/report/123' } };
+      }
+      assert.equal(url, 'https://cdn.example.test/report/123');
       assert.equal(options.responseType, 'arraybuffer');
       return {
         status: 200,
@@ -110,12 +118,14 @@ test('downloadApp supports PDF reports with a format-specific filename', async (
       clientId: 'client-id',
       clientSecret: 'client-secret',
       clientEnv: 'prod',
-      teamName: 'Default'
+      teamName: 'Default',
+      reportFormat: 'pdf'
     }, {
       accessToken: 'test-token'
-    }, 'pdf');
+    });
 
     assert.equal(result.reportFileName, 'Sample_App_zscan.pdf');
+    assert.equal(requestCount, 2);
     assert.equal(fs.readFileSync(path.join(dir, result.reportFileName), 'utf8'), '%PDF-test');
   } finally {
     axios.get = originalGet;
@@ -135,6 +145,22 @@ test('finding severity uses the JSON severity fields', () => {
   assert.equal(parseFindingSeverity({ severity: 'Critical', severityOrdinal: 4 }), 'critical');
   assert.equal(parseFindingSeverity({ severityOrdinal: 3 }), 'high');
   assert.equal(parseFindingSeverity({ severity: 'not-a-severity' }), 'unknown');
+});
+
+test('scan summary counts total and unaccepted findings by severity', () => {
+  const summary = summarizeScanReport({
+    findings: [
+      { severity: 'Critical', accepted_status: false },
+      { severity: 'Critical', accepted_status: true },
+      { severity: 'Low', accepted_status: false },
+      { severity: 'Best Practices', accepted_status: false }
+    ]
+  });
+
+  assert.deepEqual(summary.critical, { total: 2, unaccepted: 1 });
+  assert.deepEqual(summary.low, { total: 1, unaccepted: 1 });
+  assert.deepEqual(summary['best practices'], { total: 1, unaccepted: 1 });
+  assert.deepEqual(summary.high, { total: 0, unaccepted: 0 });
 });
 
 test('report criteria match severity and accepted status like Jenkins', () => {

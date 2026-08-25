@@ -40,7 +40,11 @@ The action supports `json`, `sarif`, and `pdf` through the `report_format` input
 
 Reports use the application filename with `_zscan` and the selected extension, such as `Sample_Insecure_Bank_App_zscan.sarif`.
 
+PDF reports are retrieved through the assessment report metadata endpoint and then downloaded from the returned CDN URL.
+
 Set `fail_on_scan_findings` to `true` to fail the workflow when findings meet the configured criteria. Use `scan_evaluation_mode` with `any_finding` (default) or `unaccepted_finding_only`, and set `minimum_severity` to `informational`, `low` (default), `medium`, `high`, or `critical`. `Best Practices` findings are excluded from gating.
+
+When scan finding evaluation is enabled, the action prints a severity summary with total and unaccepted finding counts, followed by whether the configured evaluation criteria were met.
 
     ```yaml
     with:

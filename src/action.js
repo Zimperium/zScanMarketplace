@@ -79,6 +79,24 @@ function parseFindingAccepted(finding) {
     return finding && finding.accepted_status === false;
 }
 
+function summarizeScanReport(report) {
+    const findings = report && Array.isArray(report.findings) ? report.findings : [];
+    const summary = {};
+    Object.keys(SEVERITY_RANKS).forEach(severity => {
+        summary[severity] = {total: 0, unaccepted: 0};
+    });
+
+    findings.forEach(finding => {
+        const severity = parseFindingSeverity(finding);
+        summary[severity].total += 1;
+        if (parseFindingAccepted(finding)) {
+            summary[severity].unaccepted += 1;
+        }
+    });
+
+    return summary;
+}
+
 function reportMatchesCriteria(report, mode = 'any_finding', minimumSeverity = 'low') {
     const findings = report && Array.isArray(report.findings) ? report.findings : [];
     const normalizedThreshold = normalizeSeverity(minimumSeverity);
@@ -250,18 +268,32 @@ async function pollStatus(buildId) {
     }
 }
 
-async function downloadApp(assessmentId, originalFileName, actionConfig = getActionConfig(), loginResponseOverride = undefined, reportFormat = 'sarif') {
+async function downloadApp(assessmentId, originalFileName, actionConfig = getActionConfig(), loginResponseOverride = undefined, reportFormat = undefined) {
     const config = actionConfig || getActionConfig();
     core.debug('Entering downloadApp for file: ' + originalFileName);
     const loginResponse = loginResponseOverride || await loginHttpRequest(config);
     try {
-        const format = normalizeReportFormat(reportFormat);
-        const response = await axios.get(`${getBaseUrl(config)}/api/zdev-app/public/v1/assessments/${assessmentId}/${format}`, {
-            headers: {
-                'Authorization': 'Bearer ' + loginResponse.accessToken
-            },
-            responseType: 'arraybuffer'
-        });
+        const format = normalizeReportFormat(reportFormat || config.reportFormat);
+        let response;
+        if (format === 'pdf') {
+            const reportResponse = await axios.get(`${getBaseUrl(config)}/api/zdev-app/public/v1/assessments/${assessmentId}/report`, {
+                headers: {
+                    'Authorization': 'Bearer ' + loginResponse.accessToken
+                }
+            });
+            const reportUrl = reportResponse.data && reportResponse.data.cdn_link;
+            if (!reportUrl) {
+                throw new Error(`PDF report URL was not returned for assessment ${assessmentId}.`);
+            }
+            response = await axios.get(reportUrl, { responseType: 'arraybuffer' });
+        } else {
+            response = await axios.get(`${getBaseUrl(config)}/api/zdev-app/public/v1/assessments/${assessmentId}/${format}`, {
+                headers: {
+                    'Authorization': 'Bearer ' + loginResponse.accessToken
+                },
+                responseType: 'arraybuffer'
+            });
+        }
         
         // Generate unique report filename based on original file
         const baseName = path.basename(originalFileName, path.extname(originalFileName));
@@ -269,27 +301,28 @@ async function downloadApp(assessmentId, originalFileName, actionConfig = getAct
         fs.writeFileSync(reportFileName, Buffer.from(response.data));
         return {statusCode: response.status, reportFileName};
     } catch (error) {
-        if (error.response && error.response.status === 404) {
-            return {statusCode: 404};
+        if (error.response && shouldRetryDownload(error.response.status)) {
+            return {statusCode: error.response.status};
         }
         throw error;
     }
 }
 
-async function pollDownload(assessmentId, originalFileName, reportFormat = 'sarif') {
+async function pollDownload(assessmentId, originalFileName, reportFormat = undefined) {
+    const format = normalizeReportFormat(reportFormat || getActionConfig().reportFormat);
     await sleep(DOWNLOAD_POLL_TIME);
     core.debug('Entering pollDownload for file: ' + originalFileName);
     let done = false;
     let totalTime = 0;
     while(!done && totalTime < MAX_DOWNLOAD_TIME) {
-        let result = await downloadApp(assessmentId, originalFileName, getActionConfig(), undefined, reportFormat);
+        let result = await downloadApp(assessmentId, originalFileName, getActionConfig(), undefined, format);
         core.debug(`Download attempt returned status code: ${result.statusCode}`);
         if(result.statusCode == 200) {
-            core.info(`Sarif file ${result.reportFileName} download complete.`);
+            core.info(`${format.toUpperCase()} file ${result.reportFileName} download complete.`);
             done = true;
             return result;
         } else {
-            core.info('Sarif file download is not ready, waiting to try again.');
+            core.info(`${format.toUpperCase()} file download is not ready, waiting to try again.`);
             totalTime += DOWNLOAD_POLL_TIME;
             await sleep(DOWNLOAD_POLL_TIME);
         }
@@ -400,8 +433,20 @@ async function runAction() {
 
                     if (config.failOnScanFindings && jsonResult) {
                         const report = JSON.parse(fs.readFileSync(jsonResult.reportFileName, 'utf8'));
+                        const summary = summarizeScanReport(report);
+                        core.info(`Scan Summary for assessment ${statusResult.id}:`);
+                        Object.keys(SEVERITY_RANKS).forEach(severity => {
+                            const counts = summary[severity];
+                            if (counts.total > 0 || counts.unaccepted > 0) {
+                                core.info(`  ${severity}: total=${counts.total}, unaccepted=${counts.unaccepted}`);
+                            }
+                        });
+
+                        const criteriaDescription = `mode=${config.scanEvaluationMode}, minimum severity=${config.minimumSeverity}`;
                         if (reportMatchesCriteria(report, config.scanEvaluationMode, config.minimumSeverity)) {
-                            core.setFailed(`Scan findings met the configured criteria for ${result.originalFileName}.`);
+                            core.setFailed(`Scan findings met the configured criteria (${criteriaDescription}) for ${result.originalFileName}.`);
+                        } else {
+                            core.info(`Scan findings did not meet the configured criteria (${criteriaDescription}) for ${result.originalFileName}.`);
                         }
                     }
 
@@ -458,6 +503,7 @@ module.exports = {
     normalizeSeverity,
     parseFindingSeverity,
     parseFindingAccepted,
+    summarizeScanReport,
     reportMatchesCriteria,
     sleep,
     runAction
