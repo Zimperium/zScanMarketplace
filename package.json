@@ -1,6 +1,6 @@
 {
   "name": "zscanmarketplace",
-  "version": "1.5.0",
+  "version": "1.6.0",
   "description": "The `Zimperium zScan` action delivers security analysis of iOS and Android apps coded in any language.",
   "main": "index.js",
   "scripts": {

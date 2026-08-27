@@ -9,8 +9,9 @@ The zimperium-zscan action scans your mobile app binary (ios or android) and ide
     - Identify risks and provide recommendations to mitigate the risk
     - Highlights the vulnerable code snippet
     - Lists the locations where the vulnerable code snippet was found
-    - Integrates with GitHub Advanced Security (GHAS) to display issues and remediation information inside of GitHub code scanning alerts
+    - Integrates with GitHub Advanced Security (GHAS) to display issues and     remediation information inside of GitHub code scanning alerts (SARIF report download required)
     - Run scans for each merge or pull request
+    - Break workflow if certain scan criteria are met
 
 ## Example Workflow
 
@@ -24,6 +25,8 @@ The zimperium-zscan action scans your mobile app binary (ios or android) and ide
             client_secret: ${{ secrets.ZSCAN_CLIENT_SECRET }}
             app_file: ./Sample_Insecure_Bank_App.apk
             team_name: Default
+            report_format: sarif
+            fail_on_scan_findings: false
 
     - name: Upload SARIF file
         uses: github/codeql-action/upload-sarif@v4
@@ -31,9 +34,29 @@ The zimperium-zscan action scans your mobile app binary (ios or android) and ide
             sarif_file: Sample_Insecure_Bank_App_zscan.sarif
     ```
 
+### Report format and workflow gating
+
+The action supports `json`, `sarif`, and `pdf` through the `report_format` input. The default is `sarif`, allowing integration with the GitHub Advanced Security. JSON is downloaded when selected or when scan finding evaluation is enabled. Selecting SARIF or PDF downloads that report in addition to JSON when evaluation is enabled.
+
+Reports use the application filename with `_zscan` and the selected extension, such as `Sample_Insecure_Bank_App_zscan.sarif`.
+
+PDF reports are retrieved through the assessment report metadata endpoint and then downloaded from the returned CDN URL.
+
+Set `fail_on_scan_findings` to `true` to fail the workflow when findings meet the configured criteria. Use `scan_evaluation_mode` with `any_finding` (default) or `unaccepted_finding_only`, and set `minimum_severity` to `informational`, `low` (default), `medium`, `high`, or `critical`. `Best Practices` findings are excluded from gating.
+
+When scan finding evaluation is enabled, the action prints a severity summary with total and unaccepted finding counts, followed by whether the configured evaluation criteria were met.
+
+    ```yaml
+    with:
+        report_format: pdf
+        fail_on_scan_findings: true
+        scan_evaluation_mode: unaccepted_finding_only
+        minimum_severity: high
+    ```
+
 ## GitHub Prerequisites
 
-- If you use an Enterprise GitHub account, you need a GitHub Advanced Security (GHAS) license to import zScan results into your repository's Security Dashboard.  Alternatively, you can skip uploading the SARIF file.
+- If you use an Enterprise GitHub account, you need a GitHub Advanced Security (GHAS) license to import zScan results into your repository's Security Dashboard.  Alternatively, you can skip uploading the SARIF file and/or generate reports as a JSON or PDF.
 - If you use a Public repository, GHAS, and Code Scanning are already enabled by default.
 
 ## Get Started

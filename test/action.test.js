@@ -5,7 +5,16 @@ const os = require('os');
 const path = require('path');
 const axios = require('axios');
 
-const { getMatchingFiles, downloadApp } = require('../src/action');
+const {
+  getMatchingFiles,
+  downloadApp,
+  normalizeReportFormat,
+  normalizeScanEvaluationMode,
+  parseFindingSeverity,
+  parseFindingAccepted,
+  summarizeScanReport,
+  reportMatchesCriteria
+} = require('../src/action');
 
 function createTempDir() {
   return fs.mkdtempSync(path.join(os.tmpdir(), 'zscan-action-'));
@@ -78,4 +87,108 @@ test('downloadApp writes a SARIF report file with a derived filename', async () 
     process.chdir(previousCwd);
     fs.rmSync(dir, { recursive: true, force: true });
   }
+});
+
+test('downloadApp supports PDF reports with a format-specific filename', async () => {
+  const dir = createTempDir();
+  const previousCwd = process.cwd();
+  let originalGet;
+
+  try {
+    process.chdir(dir);
+    originalGet = axios.get;
+    let requestCount = 0;
+    axios.get = async (url, options) => {
+      requestCount += 1;
+      if (requestCount === 1) {
+        assert.match(url, /assessments\/123\/report/);
+        assert.equal(options.headers.Authorization, 'Bearer test-token');
+        return { data: { cdn_link: 'https://cdn.example.test/report/123' } };
+      }
+      assert.equal(url, 'https://cdn.example.test/report/123');
+      assert.equal(options.responseType, 'arraybuffer');
+      return {
+        status: 200,
+        data: Buffer.from('%PDF-test')
+      };
+    };
+
+    const result = await downloadApp('123', 'Sample_App.apk', {
+      consoleUrl: 'https://example.test',
+      clientId: 'client-id',
+      clientSecret: 'client-secret',
+      clientEnv: 'prod',
+      teamName: 'Default',
+      reportFormat: 'pdf'
+    }, {
+      accessToken: 'test-token'
+    });
+
+    assert.equal(result.reportFileName, 'Sample_App_zscan.pdf');
+    assert.equal(requestCount, 2);
+    assert.equal(fs.readFileSync(path.join(dir, result.reportFileName), 'utf8'), '%PDF-test');
+  } finally {
+    axios.get = originalGet;
+    process.chdir(previousCwd);
+    fs.rmSync(dir, { recursive: true, force: true });
+  }
+});
+
+test('report format and evaluation inputs normalize to supported values', () => {
+  assert.equal(normalizeReportFormat('PDF'), 'pdf');
+  assert.equal(normalizeReportFormat('invalid'), 'sarif');
+  assert.equal(normalizeScanEvaluationMode('unaccepted_finding_only'), 'unaccepted_finding_only');
+  assert.equal(normalizeScanEvaluationMode('invalid'), 'any_finding');
+});
+
+test('finding severity uses the JSON severity fields', () => {
+  assert.equal(parseFindingSeverity({ severity: 'Critical', severityOrdinal: 4 }), 'critical');
+  assert.equal(parseFindingSeverity({ severityOrdinal: 3 }), 'high');
+  assert.equal(parseFindingSeverity({ severity: 'not-a-severity' }), 'unknown');
+});
+
+test('scan summary counts total and unaccepted findings by severity', () => {
+  const summary = summarizeScanReport({
+    findings: [
+      { severity: 'Critical', accepted_status: false },
+      { severity: 'Critical', accepted_status: true },
+      { severity: 'Low', accepted_status: false },
+      { severity: 'Best Practices', accepted_status: false }
+    ]
+  });
+
+  assert.deepEqual(summary.critical, { total: 2, unaccepted: 1 });
+  assert.deepEqual(summary.low, { total: 1, unaccepted: 1 });
+  assert.deepEqual(summary['best practices'], { total: 1, unaccepted: 1 });
+  assert.deepEqual(summary.high, { total: 0, unaccepted: 0 });
+});
+
+test('report criteria match severity and accepted status like Jenkins', () => {
+  const report = {
+    findings: [
+      { severity: 'Low', severityOrdinal: 1, accepted_status: true },
+      { severity: 'Critical', severityOrdinal: 4, accepted_status: false },
+      { severity: 'Best Practices', severityOrdinal: 5, accepted_status: false }
+    ]
+  };
+
+  assert.equal(parseFindingAccepted(report.findings[0]), false);
+  assert.equal(parseFindingAccepted(report.findings[1]), true);
+  assert.equal(reportMatchesCriteria(report, 'any_finding', 'high'), true);
+  assert.equal(reportMatchesCriteria(report, 'unaccepted_finding_only', 'high'), true);
+  assert.equal(reportMatchesCriteria(report, 'unaccepted_finding_only', 'critical'), true);
+  assert.equal(reportMatchesCriteria(report, 'any_finding', 'critical'), true);
+  assert.equal(reportMatchesCriteria(report, 'any_finding', 'invalid'), true);
+});
+
+test('report criteria ignore findings below the threshold and best practices', () => {
+  const report = {
+    findings: [
+      { severity: 'Low', accepted_status: false },
+      { severity: 'Best Practices', accepted_status: false }
+    ]
+  };
+
+  assert.equal(reportMatchesCriteria(report, 'any_finding', 'high'), false);
+  assert.equal(reportMatchesCriteria(report, 'any_finding', 'critical'), false);
 });
