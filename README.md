@@ -34,25 +34,86 @@ The zimperium-zscan action scans your mobile app binary (ios or android) and ide
             sarif_file: Sample_Insecure_Bank_App_zscan.sarif
     ```
 
-### Report format and workflow gating
+### Report formats
 
-The action supports `json`, `sarif`, and `pdf` through the `report_format` input. You can specify a single format (e.g. `sarif`), a comma-separated list of formats (e.g. `sarif, pdf`), or `all` to download all available formats. The default is `sarif`, allowing integration with GitHub Advanced Security. JSON is downloaded when selected or when scan finding evaluation is enabled.
+The action supports `json`, `sarif`, and `pdf` through the `report_format` input:
 
-Reports use the application filename with `_zscan` and the selected extension, such as `Sample_Insecure_Bank_App_zscan.sarif` and `Sample_Insecure_Bank_App_zscan.pdf`.
+| Value | Result |
+| --- | --- |
+| `sarif` | SARIF only (default) |
+| `json` | JSON only |
+| `pdf` | PDF only |
+| `sarif, pdf` | Both SARIF and PDF |
+| `all` | SARIF, JSON, and PDF |
 
-PDF reports are retrieved through the assessment report metadata endpoint and then downloaded from the returned CDN URL.
+Formats may be separated by commas or whitespace and are case-insensitive. Unsupported values are ignored with a warning; if no supported value remains, the action falls back to `sarif`.
+
+**Requesting multiple formats performs exactly one app upload and one zScan assessment.** Every requested report is downloaded from that same assessment ID, so you never need to invoke the action more than once to collect multiple reports.
+
+Reports are named after the application file with a `_zscan` suffix and the format extension, for example `Sample_Insecure_Bank_App_zscan.sarif` and `Sample_Insecure_Bank_App_zscan.pdf`. Each requested report is verified as written to disk and non-empty before the action succeeds.
+
+### Workflow gating
 
 Set `fail_on_scan_findings` to `true` to fail the workflow when findings meet the configured criteria. Use `scan_evaluation_mode` with `any_finding` (default) or `unaccepted_finding_only`, and set `minimum_severity` to `informational`, `low` (default), `medium`, `high`, or `critical`. `Best Practices` findings are excluded from gating.
 
+When gating is enabled the action needs the JSON report. If you did not request `json`, it is fetched automatically **from the same assessment** — this does not trigger an additional upload or scan, and the extra JSON report is not added to your requested outputs.
+
 When scan finding evaluation is enabled, the action prints a severity summary with total and unaccepted finding counts, followed by whether the configured evaluation criteria were met.
 
+### Reliability behavior
+
+**Upload retries.** Uploads are retried on transient failures: HTTP `408`, `429`, and any `5xx`, plus network-level errors such as `ECONNRESET` and `ETIMEDOUT`. Authentication failures (`401`/`403`), validation errors, and other non-transient `4xx` responses are never retried and fail immediately. Retries use bounded attempts with exponential backoff, and each retry is logged with the status code only — credentials, tokens, and signed URLs are never written to the log. When several app files are matched, a failed upload is reported explicitly and never produces a success-shaped result; the action fails if any file fails.
+
+**Status polling.** The action polls the assessment status every 30 seconds for up to 45 minutes by default. Transient `404` and `5xx` responses are treated as "not ready yet" rather than errors, since the service returns these while the scan is still in progress. Status payloads are validated before any field is read, so a malformed or incomplete response produces an actionable error instead of an undefined dereference.
+
+**Report download.** Each requested report is polled for up to 20 minutes by default. PDF reports are retrieved by first requesting the assessment report metadata, reading the returned `cdn_link`, and immediately downloading from that URL (the link is short-lived). Transient `404`, `425`, `429`, `5xx`, and network errors are retried; missing `cdn_link` values, malformed responses, authentication failures, and non-transient `4xx` errors fail immediately without retrying.
+
+**Failure modes.** The action fails with a clear, actionable message when analysis reports `Failed`, when status polling times out, when status responses are repeatedly malformed, when a requested report cannot be downloaded before its timeout, or when a report file is missing or empty.
+
+### Retry and timeout configuration
+
+All of these are optional and have bounded defaults, so existing workflows need no changes. Invalid values fail the action with an explicit message.
+
+| Input | Default | Range | Purpose |
+| --- | --- | --- | --- |
+| `retry_attempts` | `3` | 1–10 | Attempts for transient upload/API failures |
+| `retry_delay_seconds` | `5` | 0–60 | Initial delay between retries |
+| `retry_backoff_factor` | `2` | 1–5 | Exponential backoff multiplier |
+| `status_timeout_minutes` | `45` | 1–360 | Max wait for analysis to complete |
+| `status_poll_interval_seconds` | `30` | 5–300 | Interval between status checks |
+| `report_timeout_minutes` | `20` | 1–180 | Max wait for each report |
+| `report_poll_interval_seconds` | `6` | 1–120 | Interval between download attempts |
+
+### Complete multiformat example
+
     ```yaml
-    with:
-        report_format: sarif, pdf
-        fail_on_scan_findings: true
-        scan_evaluation_mode: unaccepted_finding_only
-        minimum_severity: high
+    - name: Run Zimperium zScan
+        uses: zimperium/zscanmarketplace@v1.4
+        timeout-minutes: 60
+        with:
+            console_url: https://zc202.zimperium.com
+            client_id: ${{ vars.ZSCAN_CLIENT_ID }}
+            client_secret: ${{ secrets.ZSCAN_CLIENT_SECRET }}
+            app_file: ./Sample_Insecure_Bank_App.apk
+            team_name: Default
+            report_format: sarif, pdf
+            fail_on_scan_findings: true
+            scan_evaluation_mode: unaccepted_finding_only
+            minimum_severity: high
+
+    - name: Upload SARIF file
+        uses: github/codeql-action/upload-sarif@v4
+        with:
+            sarif_file: Sample_Insecure_Bank_App_zscan.sarif
+
+    - name: Archive PDF report
+        uses: actions/upload-artifact@v4
+        with:
+            name: zscan-pdf-report
+            path: Sample_Insecure_Bank_App_zscan.pdf
     ```
+
+The single step above uploads the app once, runs one scan, and produces both `Sample_Insecure_Bank_App_zscan.sarif` and `Sample_Insecure_Bank_App_zscan.pdf`.
 
 ## GitHub Prerequisites
 

@@ -43,6 +43,34 @@ inputs:
     required: false
     description: "Minimum severity for scan evaluation: informational, low, medium, high, or critical (default: low)"
     default: "low"
+  retry_attempts:
+    required: false
+    description: "Maximum attempts for transient upload/API failures, 1-10 (default: 3)"
+    default: "3"
+  retry_delay_seconds:
+    required: false
+    description: "Initial delay between retry attempts in seconds, 0-60 (default: 5)"
+    default: "5"
+  retry_backoff_factor:
+    required: false
+    description: "Exponential backoff multiplier applied between retries, 1-5 (default: 2)"
+    default: "2"
+  status_timeout_minutes:
+    required: false
+    description: "Maximum time to wait for zScan analysis to complete, in minutes, 1-360 (default: 45)"
+    default: "45"
+  status_poll_interval_seconds:
+    required: false
+    description: "Interval between assessment status checks in seconds, 5-300 (default: 30)"
+    default: "30"
+  report_timeout_minutes:
+    required: false
+    description: "Maximum time to wait for each report to become downloadable, in minutes, 1-180 (default: 20)"
+    default: "20"
+  report_poll_interval_seconds:
+    required: false
+    description: "Interval between report download attempts in seconds, 1-120 (default: 6)"
+    default: "6"
 
 runs:
   using: 'node24'
