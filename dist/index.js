@@ -36455,7 +36455,7 @@ function getActionConfig() {
             clientSecret: core.getInput('client_secret', { required: true }),
             clientApp: core.getInput('app_file', { required: true }),
             teamName: core.getInput('team_name', { required: false }) || 'Default',
-            reportFormat: normalizeReportFormat(core.getInput('report_format', { required: false })),
+            reportFormat: normalizeReportFormats(core.getInput('report_format', { required: false })),
             failOnScanFindings: core.getBooleanInput('fail_on_scan_findings', { required: false }),
             scanEvaluationMode: normalizeScanEvaluationMode(core.getInput('scan_evaluation_mode', { required: false })),
             minimumSeverity: normalizeSeverity(core.getInput('minimum_severity', { required: false }) || 'low')
@@ -36465,9 +36465,28 @@ function getActionConfig() {
     return actionConfig;
 }
 
+function normalizeReportFormats(value) {
+    if (Array.isArray(value)) {
+        value = value.join(',');
+    }
+    const rawItems = String(value || 'sarif')
+        .toLowerCase()
+        .split(/[\s,;|]+/)
+        .map(s => s.trim())
+        .filter(Boolean);
+
+    if (rawItems.includes('all')) {
+        return ['sarif', 'json', 'pdf'];
+    }
+
+    const valid = rawItems.filter(f => ['json', 'sarif', 'pdf'].includes(f));
+    const unique = Array.from(new Set(valid));
+    return unique.length > 0 ? unique : ['sarif'];
+}
+
 function normalizeReportFormat(value) {
-    const format = String(value || 'sarif').trim().toLowerCase();
-    return ['json', 'sarif', 'pdf'].includes(format) ? format : 'sarif';
+    const formats = normalizeReportFormats(value);
+    return formats.length === 1 ? formats[0] : formats;
 }
 
 function normalizeScanEvaluationMode(value) {
@@ -36687,12 +36706,19 @@ async function pollStatus(buildId) {
     }
 }
 
+function shouldRetryDownload(status) {
+    return [400, 404, 429, 500, 502, 503, 504].includes(status);
+}
+
 async function downloadApp(assessmentId, originalFileName, actionConfig = getActionConfig(), loginResponseOverride = undefined, reportFormat = undefined) {
     const config = actionConfig || getActionConfig();
     core.debug('Entering downloadApp for file: ' + originalFileName);
     const loginResponse = loginResponseOverride || await loginHttpRequest(config);
     try {
-        const format = normalizeReportFormat(reportFormat || config.reportFormat);
+        const defaultFormat = Array.isArray(config.reportFormat) ? config.reportFormat[0] : config.reportFormat;
+        const rawFormat = reportFormat || defaultFormat;
+        const normalized = normalizeReportFormat(rawFormat);
+        const format = Array.isArray(normalized) ? normalized[0] : normalized;
         let response;
         if (format === 'pdf') {
             const reportResponse = await axios.get(`${getBaseUrl(config)}/api/zdev-app/public/v1/assessments/${assessmentId}/report`, {
@@ -36728,7 +36754,11 @@ async function downloadApp(assessmentId, originalFileName, actionConfig = getAct
 }
 
 async function pollDownload(assessmentId, originalFileName, reportFormat = undefined) {
-    const format = normalizeReportFormat(reportFormat || getActionConfig().reportFormat);
+    const config = getActionConfig();
+    const defaultFormat = Array.isArray(config.reportFormat) ? config.reportFormat[0] : config.reportFormat;
+    const rawFormat = reportFormat || defaultFormat;
+    const normalized = normalizeReportFormat(rawFormat);
+    const format = Array.isArray(normalized) ? normalized[0] : normalized;
     await sleep(DOWNLOAD_POLL_TIME);
     core.debug('Entering pollDownload for file: ' + originalFileName);
     let done = false;
@@ -36846,11 +36876,19 @@ async function runAction() {
                 
                 const statusResult = await pollStatus(result.buildId);
                 if (statusResult.zdevMetadata.analysis !== 'Failed') {
-                    const needsJson = config.failOnScanFindings || config.reportFormat === 'json';
-                    const jsonResult = needsJson ? await pollDownload(statusResult.id, result.originalFileName, 'json') : null;
-                    const outputResult = config.reportFormat === 'json' ? jsonResult : await pollDownload(statusResult.id, result.originalFileName, config.reportFormat);
+                    const userFormats = Array.isArray(config.reportFormat) ? config.reportFormat : normalizeReportFormats(config.reportFormat);
+                    const formatsToFetch = new Set(userFormats);
+                    if (config.failOnScanFindings) {
+                        formatsToFetch.add('json');
+                    }
 
-                    if (config.failOnScanFindings && jsonResult) {
+                    const downloadedResults = {};
+                    for (const format of formatsToFetch) {
+                        downloadedResults[format] = await pollDownload(statusResult.id, result.originalFileName, format);
+                    }
+
+                    if (config.failOnScanFindings && downloadedResults['json']) {
+                        const jsonResult = downloadedResults['json'];
                         const report = JSON.parse(fs.readFileSync(jsonResult.reportFileName, 'utf8'));
                         const summary = summarizeScanReport(report);
                         core.info(`Scan Summary for assessment ${statusResult.id}:`);
@@ -36869,7 +36907,8 @@ async function runAction() {
                         }
                     }
 
-                    return outputResult;
+                    const userResults = userFormats.map(fmt => downloadedResults[fmt]).filter(Boolean);
+                    return userResults.length === 1 ? userResults[0] : userResults;
                 }
             } catch (error) {
                 throw error;
@@ -36883,7 +36922,7 @@ async function runAction() {
     
     // Check all generated report files
     core.debug('Verifying generated report files');
-    const reportFiles = downloadResults.filter(r => r && r.reportFileName).map(r => r.reportFileName);
+    const reportFiles = downloadResults.flat().filter(r => r && r.reportFileName).map(r => r.reportFileName);
     let allSuccessful = true;
     
     for (const reportFile of reportFiles) {
@@ -36918,6 +36957,7 @@ module.exports = {
     getTeams,
     assignAppToTeam,
     normalizeReportFormat,
+    normalizeReportFormats,
     normalizeScanEvaluationMode,
     normalizeSeverity,
     parseFindingSeverity,

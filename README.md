@@ -36,9 +36,9 @@ The zimperium-zscan action scans your mobile app binary (ios or android) and ide
 
 ### Report format and workflow gating
 
-The action supports `json`, `sarif`, and `pdf` through the `report_format` input. The default is `sarif`, allowing integration with the GitHub Advanced Security. JSON is downloaded when selected or when scan finding evaluation is enabled. Selecting SARIF or PDF downloads that report in addition to JSON when evaluation is enabled.
+The action supports `json`, `sarif`, and `pdf` through the `report_format` input. You can specify a single format (e.g. `sarif`), a comma-separated list of formats (e.g. `sarif, pdf`), or `all` to download all available formats. The default is `sarif`, allowing integration with GitHub Advanced Security. JSON is downloaded when selected or when scan finding evaluation is enabled.
 
-Reports use the application filename with `_zscan` and the selected extension, such as `Sample_Insecure_Bank_App_zscan.sarif`.
+Reports use the application filename with `_zscan` and the selected extension, such as `Sample_Insecure_Bank_App_zscan.sarif` and `Sample_Insecure_Bank_App_zscan.pdf`.
 
 PDF reports are retrieved through the assessment report metadata endpoint and then downloaded from the returned CDN URL.
 
@@ -48,7 +48,7 @@ When scan finding evaluation is enabled, the action prints a severity summary wi
 
     ```yaml
     with:
-        report_format: pdf
+        report_format: sarif, pdf
         fail_on_scan_findings: true
         scan_evaluation_mode: unaccepted_finding_only
         minimum_severity: high

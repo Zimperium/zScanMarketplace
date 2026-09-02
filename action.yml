@@ -29,7 +29,7 @@ inputs:
     default: "Default"
   report_format:
     required: false
-    description: "Report format to download: json, sarif, or pdf (default: sarif)"
+    description: "Report format(s) to download: json, sarif, pdf, comma-separated list (e.g. 'sarif, pdf'), or 'all' (default: sarif)"
     default: "sarif"
   fail_on_scan_findings:
     required: false

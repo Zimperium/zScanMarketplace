@@ -9,6 +9,7 @@ const {
   getMatchingFiles,
   downloadApp,
   normalizeReportFormat,
+  normalizeReportFormats,
   normalizeScanEvaluationMode,
   parseFindingSeverity,
   parseFindingAccepted,
@@ -137,6 +138,11 @@ test('downloadApp supports PDF reports with a format-specific filename', async (
 test('report format and evaluation inputs normalize to supported values', () => {
   assert.equal(normalizeReportFormat('PDF'), 'pdf');
   assert.equal(normalizeReportFormat('invalid'), 'sarif');
+  assert.deepEqual(normalizeReportFormats('sarif, pdf'), ['sarif', 'pdf']);
+  assert.deepEqual(normalizeReportFormats('sarif pdf json'), ['sarif', 'pdf', 'json']);
+  assert.deepEqual(normalizeReportFormats('all'), ['sarif', 'json', 'pdf']);
+  assert.deepEqual(normalizeReportFormats('invalid, pdf'), ['pdf']);
+  assert.deepEqual(normalizeReportFormats('invalid'), ['sarif']);
   assert.equal(normalizeScanEvaluationMode('unaccepted_finding_only'), 'unaccepted_finding_only');
   assert.equal(normalizeScanEvaluationMode('invalid'), 'any_finding');
 });
