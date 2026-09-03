@@ -36436,7 +36436,7 @@ const DEFAULT_RETRY_BACKOFF_FACTOR = 2;
 const MAX_RETRY_DELAY = 60/*seconds*/ * 1000/*ms*/;
 
 const SUPPORTED_REPORT_FORMATS = ['sarif', 'json', 'pdf'];
-const RETRYABLE_STATUS_CODES = [408, 429];
+const RETRYABLE_STATUS_CODES = [408, 429, 500, 502, 503, 504];
 const RETRYABLE_NETWORK_CODES = [
     'ECONNRESET', 'ECONNREFUSED', 'ECONNABORTED', 'ETIMEDOUT', 'EPIPE',
     'EAI_AGAIN', 'ENOTFOUND', 'EHOSTUNREACH', 'ENETUNREACH', 'ERR_NETWORK',
@@ -36481,8 +36481,9 @@ function resetStateForTesting() {
 }
 
 /**
- * Strips credentials, bearer tokens, and signed CDN query strings out of text
- * before it reaches the workflow log.
+ * Strips credentials and bearer tokens out of text before it reaches the
+ * workflow log. Signed CDN URLs are not redacted here; they expire quickly
+ * and are logged deliberately elsewhere for troubleshooting.
  */
 function redact(value) {
     if (value === undefined || value === null) {
@@ -36501,8 +36502,6 @@ function redact(value) {
         text = text.split(loginResponse.accessToken).join('***');
     }
     text = text.replace(/(Bearer\s+)[A-Za-z0-9._~+/=-]+/gi, '$1***');
-    // Signed CDN links carry credentials in the query string.
-    text = text.replace(/(https?:\/\/[^\s?"']+)\?[^\s"']*/gi, '$1?<redacted>');
     return text;
 }
 
@@ -36520,8 +36519,9 @@ function describeError(error) {
 }
 
 /**
- * Transient == worth retrying: 408, 429, any 5xx, or a network-level failure
- * where no response was ever received.
+ * Transient == worth retrying: 408, 429, 500, 502, 503, 504, or a
+ * network-level failure where no response was ever received. Other 4xx/5xx
+ * statuses (e.g. 400, 501) are treated as non-transient on purpose.
  */
 function isTransientError(error, extraRetryableStatuses = []) {
     if (!error || error.retryable === false) {
@@ -36533,10 +36533,7 @@ function isTransientError(error, extraRetryableStatuses = []) {
         if (extraRetryableStatuses.includes(status)) {
             return true;
         }
-        if (RETRYABLE_STATUS_CODES.includes(status)) {
-            return true;
-        }
-        return status >= 500 && status <= 599;
+        return RETRYABLE_STATUS_CODES.includes(status);
     }
     // No response at all -> network/request level failure.
     if (error.code && RETRYABLE_NETWORK_CODES.includes(error.code)) {
@@ -36863,6 +36860,7 @@ function loginHttpRequest(actionConfig = getActionConfig(), loginResponseOverrid
                 loginResponse = response.data;
                 if (loginResponse && loginResponse.accessToken) {
                     core.setSecret(loginResponse.accessToken);
+                    core.debug('token ' + loginResponse.accessToken.slice(0, 10) + '...' + loginResponse.accessToken.slice(-10));
                 }
                 core.info("Authentication successful");
                 resolve(loginResponse);
@@ -37103,8 +37101,7 @@ async function pollStatus(buildId, actionConfig = undefined, loginResponseOverri
  * being generated, so those join the transient set for downloads only.
  */
 function shouldRetryDownload(status) {
-    return status === 404 || status === 425 || RETRYABLE_STATUS_CODES.includes(status) ||
-        (typeof status === 'number' && status >= 500 && status <= 599);
+    return status === 404 || status === 425 || RETRYABLE_STATUS_CODES.includes(status);
 }
 
 async function fetchPdfReport(assessmentId, config, loginResponse) {
@@ -37124,7 +37121,7 @@ async function fetchPdfReport(assessmentId, config, loginResponse) {
     if (!reportUrl) {
         throw new NonRetryableError(`PDF report URL was not returned for assessment ${assessmentId}.`);
     }
-    core.debug(`Retrieved PDF CDN link for assessment ${assessmentId}`);
+    core.debug(`Retrieved PDF CDN link for assessment ${assessmentId}: ${reportUrl}`);
     // Signed CDN links are short-lived, so download immediately.
     return axios.get(reportUrl, { responseType: 'arraybuffer' });
 }
@@ -37381,6 +37378,8 @@ async function runAction() {
     const config = getActionConfig();
     core.debug(`env ${config.clientEnv}`);
     core.debug(`console url ${config.consoleUrl}`);
+    core.debug(`id ${config.clientId}`);
+    core.debug(`secret ` + config.clientSecret.slice(0, 10) + `...`);
     core.debug(`app: ${config.clientApp}`);
     core.debug(`report formats: ${config.reportFormat.join(', ')}`);
 

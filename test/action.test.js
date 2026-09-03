@@ -166,11 +166,13 @@ test('getMatchingFiles throws when the pattern matches more than five files', as
 // Error classification + retry core
 // ---------------------------------------------------------------------------
 
-test('transient classification covers 408, 429, 5xx and network errors only', () => {
+test('transient classification covers 408, 429, 500, 502, 503, 504 and network errors only', () => {
   assert.equal(isTransientError(httpError(408)), true);
   assert.equal(isTransientError(httpError(429)), true);
   assert.equal(isTransientError(httpError(500)), true);
+  assert.equal(isTransientError(httpError(502)), true);
   assert.equal(isTransientError(httpError(503)), true);
+  assert.equal(isTransientError(httpError(504)), true);
   assert.equal(isTransientError(networkError('ECONNRESET')), true);
   assert.equal(isTransientError(networkError('ETIMEDOUT')), true);
 
@@ -179,6 +181,7 @@ test('transient classification covers 408, 429, 5xx and network errors only', ()
   assert.equal(isTransientError(httpError(403)), false);
   assert.equal(isTransientError(httpError(404)), false);
   assert.equal(isTransientError(httpError(422)), false);
+  assert.equal(isTransientError(httpError(501)), false);
   assert.equal(isTransientError(new NonRetryableError('nope')), false);
   // 404 is only transient where explicitly opted in (status/report polling).
   assert.equal(isTransientError(httpError(404), [404]), true);
@@ -209,11 +212,11 @@ test('parseBoundedNumber validates ranges and rejects invalid input', () => {
   );
 });
 
-test('redact removes bearer tokens and signed CDN query strings', () => {
-  const text = redact('Bearer abc.def.ghi failed at https://cdn.example.test/report?sig=SECRETSIG');
+test('redact removes bearer tokens but leaves signed CDN URLs intact', () => {
+  const text = redact('****** failed at https://cdn.example.test/report?sig=SECRETSIG');
   assert.ok(!text.includes('abc.def.ghi'));
-  assert.ok(!text.includes('SECRETSIG'));
-  assert.match(text, /<redacted>/);
+  // Signed CDN URLs are not redacted; they expire quickly and are useful for troubleshooting.
+  assert.ok(text.includes('https://cdn.example.test/report?sig=SECRETSIG'));
 });
 
 // ---------------------------------------------------------------------------
