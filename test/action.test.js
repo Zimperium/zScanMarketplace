@@ -212,11 +212,10 @@ test('parseBoundedNumber validates ranges and rejects invalid input', () => {
   );
 });
 
-test('redact removes bearer tokens but leaves signed CDN URLs intact', () => {
+test('redact removes bearer tokens and signed CDN URL query parameters', () => {
   const text = redact('****** failed at https://cdn.example.test/report?sig=SECRETSIG');
   assert.ok(!text.includes('abc.def.ghi'));
-  // Signed CDN URLs are not redacted; they expire quickly and are useful for troubleshooting.
-  assert.ok(text.includes('https://cdn.example.test/report?sig=SECRETSIG'));
+  assert.equal(text, '****** failed at https://cdn.example.test/report[redacted]');
 });
 
 // ---------------------------------------------------------------------------

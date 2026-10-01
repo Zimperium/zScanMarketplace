@@ -62,9 +62,8 @@ function resetStateForTesting() {
 }
 
 /**
- * Strips credentials and bearer tokens out of text before it reaches the
- * workflow log. Signed CDN URLs are not redacted here; they expire quickly
- * and are logged deliberately elsewhere for troubleshooting.
+ * Strips credentials, bearer tokens, and signed URL query parameters out of
+ * text before it reaches the workflow log.
  */
 function redact(value) {
     if (value === undefined || value === null) {
@@ -83,6 +82,7 @@ function redact(value) {
         text = text.split(loginResponse.accessToken).join('***');
     }
     text = text.replace(/(Bearer\s+)[A-Za-z0-9._~+/=-]+/gi, '$1***');
+    text = text.replace(/(https?:\/\/[^\s?#]+)[?#][^\s]*/gi, '$1[redacted]');
     return text;
 }
 
@@ -702,7 +702,7 @@ async function fetchPdfReport(assessmentId, config, loginResponse) {
     if (!reportUrl) {
         throw new NonRetryableError(`PDF report URL was not returned for assessment ${assessmentId}.`);
     }
-    core.debug(`Retrieved PDF CDN link for assessment ${assessmentId}: ${reportUrl}`);
+    core.debug(`Retrieved PDF CDN link for assessment ${assessmentId}: ${redact(reportUrl)}`);
     // Signed CDN links are short-lived, so download immediately.
     return axios.get(reportUrl, { responseType: 'arraybuffer' });
 }
