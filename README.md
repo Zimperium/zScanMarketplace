@@ -17,7 +17,7 @@ The zimperium-zscan action scans your mobile app binary (ios or android) and ide
 
     ```yaml
     - name: Run Zimperium zScan
-        uses: zimperium/zscanmarketplace@v1.4
+        uses: zimperium/zscanmarketplace@v1.7
         timeout-minutes: 60
         with:
             console_url: https://zc202.zimperium.com
@@ -88,7 +88,7 @@ All of these are optional and have bounded defaults, so existing workflows need 
 
     ```yaml
     - name: Run Zimperium zScan
-        uses: zimperium/zscanmarketplace@v1.4
+        uses: zimperium/zscanmarketplace@v1.7
         timeout-minutes: 60
         with:
             console_url: https://zc202.zimperium.com
@@ -188,6 +188,34 @@ For more information, see [GitHub Documentation](https://docs.github.com/en/acti
 ## If You Run Into Issues
 
 File [issues](https://github.com/Zimperium/zScanMarketplace/issues) for missing content or errors. Explain what you think is missing and give a suggestion as to where it could be added.
+
+## Developer Guide
+
+### Prerequisites
+
+- Node.js 24 and npm
+
+### Install dependencies
+
+    ```sh
+    npm ci
+    ```
+
+### Run tests
+
+    ```sh
+    npm test
+    ```
+
+The test suite uses Node's built-in test runner and stubs API requests, so credentials are not needed.
+
+### Build the action
+
+    ```sh
+    npm run build
+    ```
+
+This bundles `src/action.js` with ncc into `dist/index.js`, the file executed by the action. Regenerate and include the `dist` bundle when changing the source.
 
 ## License
 
